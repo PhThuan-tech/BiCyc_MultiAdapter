@@ -45,7 +45,11 @@ class DirectionOneExperiment:
     def __init__(self, cfg: DictConfig) -> None:
         self.cfg = cfg
         experiment = cfg.experiment
-        model_cfg, data_cfg = cfg.model, cfg.data
+        # Hydra >=1.1 packages secondary defaults relative to the containing group
+        # unless declared with ``@_global_``, so model/data may live at the root or
+        # under ``experiment`` depending on the config revision; accept both.
+        model_cfg = cfg.model if "model" in cfg else experiment.model
+        data_cfg = cfg.data if "data" in cfg else experiment.data
         self.device = cfg.device if torch.cuda.is_available() or cfg.device == "cpu" else "cpu"
         if self.device == "cuda":
             enable_tf32()

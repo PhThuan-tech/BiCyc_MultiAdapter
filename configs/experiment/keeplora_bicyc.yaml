@@ -1,9 +1,9 @@
-name: keeplora_bicyc
+﻿name: keeplora_bicyc
 method: keeplora_bicyc
 seed: 2024
 trainer: keeplora
-resume: true                 # tự động tiếp tục từ checkpoint trong output_dir nếu có
-checkpoint_every_epochs: 0   # >0: lưu snapshot giữa task mỗi N epoch (khuyến nghị trên cloud)
+resume: true                 # tá»± Ä‘á»™ng tiáº¿p tá»¥c tá»« checkpoint trong output_dir náº¿u cÃ³
+checkpoint_every_epochs: 0   # >0: lÆ°u snapshot giá»¯a task má»—i N epoch (khuyáº¿n nghá»‹ trÃªn cloud)
 defaults:
   - /model: keeplora
   - /data: cifar100_10tasks
@@ -17,8 +17,8 @@ train:
   batch_size: 128
   lr: 0.001
   weight_decay: 0.0001
-  amp: false              # fp16 mixed precision; bật true trên GPU TensorCore (T4/RTX/A100)
-  amp_dtype: float16      # hoặc bfloat16 (Ampere+)
+  amp: false              # fp16 mixed precision; báº­t true trÃªn GPU TensorCore (T4/RTX/A100)
+  amp_dtype: float16      # hoáº·c bfloat16 (Ampere+)
 alignment:
   # BiCyc defaults from the paper; adaptive_distribution is this project's proposal.
   enabled: true           # false => KeepLoRA-only baseline (ablation 1)
@@ -44,3 +44,4 @@ keeplora:
 classifier:
   covariance_mode: full_shared  # or diagonal
   shrinkage: 0.0001
+

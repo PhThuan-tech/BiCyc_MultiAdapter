@@ -15,3 +15,4 @@ checkpoints/*
 *.pth
 *.ckpt
 .env
+%TEMP%/

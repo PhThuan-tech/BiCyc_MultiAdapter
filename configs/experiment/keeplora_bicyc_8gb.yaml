@@ -1,11 +1,11 @@
-name: keeplora_bicyc_8gb
+﻿name: keeplora_bicyc_8gb
 # Full proposed method tuned for an 8 GB laptop GPU (e.g. RTX 4060 Laptop):
 # smaller batch and activation cache so backbone + old snapshot + BiCyc fit in VRAM.
 method: keeplora_bicyc
 seed: 2024
 trainer: keeplora
-resume: true                 # tự động tiếp tục từ checkpoint trong output_dir nếu có
-checkpoint_every_epochs: 1   # GPU cloud hay hết thời gian: lưu mỗi epoch (file ~350MB, ghi đè)
+resume: true                 # tá»± Ä‘á»™ng tiáº¿p tá»¥c tá»« checkpoint trong output_dir náº¿u cÃ³
+checkpoint_every_epochs: 1   # GPU cloud hay háº¿t thá»i gian: lÆ°u má»—i epoch (file ~350MB, ghi Ä‘Ã¨)
 defaults:
   - /model: keeplora
   - /data: cifar100_10tasks
@@ -18,7 +18,7 @@ train:
   batch_size: 32
   lr: 0.001
   weight_decay: 0.0001
-  amp: true               # fp16 giúp GPU 8 GB (RTX 4060...) nhanh hơn đáng kể
+  amp: true               # fp16 giÃºp GPU 8 GB (RTX 4060...) nhanh hÆ¡n Ä‘Ã¡ng ká»ƒ
   amp_dtype: float16
 alignment:
   enabled: true
