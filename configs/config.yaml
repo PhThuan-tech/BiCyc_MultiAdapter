@@ -1,0 +1,7 @@
+defaults:
+  - experiment: keeplora_bicyc
+  - _self_
+
+output_dir: outputs/${experiment.name}/seed_${experiment.seed}
+device: cuda
+deterministic: true

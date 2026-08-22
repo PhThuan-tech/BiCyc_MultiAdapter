@@ -1,0 +1,23 @@
+services:
+  research:
+    build:
+      context: .
+      args:
+        BASE_IMAGE: pytorch/pytorch:2.5.1-cuda12.4-cudnn9-runtime
+    image: bicyc-multiadapter:cuda12.4-torch2.5.1
+    init: true
+    gpus: all
+    ipc: host
+    working_dir: /workspace
+    volumes:
+      - ./data:/workspace/data
+      - ./outputs:/workspace/outputs
+      - ./checkpoints:/workspace/checkpoints
+      - hf-cache:/workspace/.cache/huggingface
+      - torch-cache:/workspace/.cache/torch
+    environment:
+      PYTHONHASHSEED: "0"
+      TOKENIZERS_PARALLELISM: "false"
+volumes:
+  hf-cache:
+  torch-cache:

@@ -1,0 +1,16 @@
+name: rsiat_birae
+method: rsiat_birae
+seed: 2024
+trainer: rsiat
+defaults:
+  - /model: rsiat
+  - /data: cifar100_10tasks
+  - _self_
+train:
+  epochs_per_task: 20
+  batch_size: 128
+  lr: 0.001
+  weight_decay: 0.0001
+representation_steering:
+  lambda_rs: 1.0
+  warmup_epochs: 5

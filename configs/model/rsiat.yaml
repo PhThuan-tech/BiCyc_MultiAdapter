@@ -1,0 +1,5 @@
+backbone: vit_base_patch16_224
+feature_dim: 768
+adapter_bottleneck: 64
+freeze_backbone: true
+adapter_strategy: shared

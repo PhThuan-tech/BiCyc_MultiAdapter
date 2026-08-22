@@ -1,0 +1,8 @@
+name: cifar100
+root: data/cifar100
+num_classes: 100
+initial_classes: 10
+increment: 10
+class_order_seed: 1993
+num_workers: 4
+exemplar_free: true

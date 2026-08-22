@@ -1,0 +1,86 @@
+# BiCyc Multi-Adapter
+
+Scaffold tái lập thí nghiệm **Exemplar-Free Class-Incremental Learning (CIL)** cho hai hướng:
+
+- `keeplora_bicyc`: KeepLoRA nhiều adapter + Adaptive Bidirectional Cycle alignment.
+- `rsiat_birae`: shared adapter RSIAT + Bidirectional Residual Autoencoder.
+
+Đây là bộ khung nghiên cứu, **chưa hiện thực thuật toán hoặc chạy thí nghiệm**. Các lớp và file cấu hình ghi rõ ranh giới trách nhiệm để nhóm có thể hiện thực độc lập từng module mà không trộn hai pipeline.
+
+## Cấu trúc
+
+```text
+src/bicyc_multiadapter/
+  data/                 # task split, dataset và transform CIL
+  models/
+    backbones/          # ViT/CLIP đóng băng
+    adapters/           # KeepLoRA | shared RSIAT
+    alignment/          # BiCyc | Bi-RAE và các loss
+  engine/               # hai training loop tách biệt
+  evaluation/           # accuracy, forgetting, drift, efficiency
+  utils/                # reproducibility, checkpoint, logging
+configs/                # Hydra YAML: experiment/model/data
+docs/                   # thiết kế và checklist thí nghiệm
+```
+
+## Cài đặt (chưa cần thực hiện ngay)
+
+Yêu cầu đề xuất: NVIDIA GPU (≥ 12 GB VRAM khuyến nghị; GPU 8 GB như RTX 4060 Laptop chạy được với preset `keeplora_bicyc_8gb` — xem [docs/RUN_DIRECTION1.md](docs/RUN_DIRECTION1.md) mục 2.3), driver NVIDIA tương thích CUDA 12.4, Docker Desktop/Engine có NVIDIA Container Toolkit; hoặc Python 3.11–3.12 để phát triển cục bộ.
+
+### Môi trường cục bộ
+
+```bash
+python -m venv .venv
+# Linux/macOS: source .venv/bin/activate
+# Windows: .venv\\Scripts\\Activate.ps1
+python -m pip install --upgrade pip
+# GPU CUDA 12.4
+pip install torch==2.5.1 torchvision==0.20.1 --index-url https://download.pytorch.org/whl/cu124
+pip install -r requirements/base.txt
+pip install -e .
+```
+
+CPU-only: thay lệnh cài PyTorch bằng `--index-url https://download.pytorch.org/whl/cpu`. Cài công cụ kiểm thử bằng `pip install -r requirements/dev.txt`.
+
+## Docker
+
+Image GPU dùng nền `pytorch/pytorch:2.5.1-cuda12.4-cudnn9-runtime`, vì vậy không cài đè PyTorch trong image. Tất cả thư viện Python còn lại được pin trong `requirements/docker.txt`.
+
+```bash
+docker compose build
+docker compose run --rm research bash
+```
+
+Khi đã hiện thực runner, chạy (ví dụ):
+
+```bash
+docker compose run --rm research python -m bicyc_multiadapter.train experiment=keeplora_bicyc
+```
+
+`data/`, `outputs/`, `checkpoints/` là volume host và không bị đóng gói vào image. Không ghi dữ liệu mẫu, token hay checkpoint vào Git/image. Chi tiết trong [docs/REPRODUCIBILITY.md](docs/REPRODUCIBILITY.md).
+
+## Trạng thái hiện tại
+
+- Hướng 1 đã **có pipeline chạy được đầu cuối**: data protocol CIFAR-100 CIL, backbone ViT frozen
+  (timm) vá `RoutedKeepLoRALinear`, khởi tạo residual-gradient SVD trước mỗi task, hai optimizer
+  tách biệt cho BiCyc, routing PFD online, Gaussian classifier có transport qua map A, đánh giá
+  CIL sau từng task và checkpoint/metrics. Xem [hướng dẫn chạy](docs/RUN_DIRECTION1.md).
+- Adaptive distribution gate (symmetric diagonal Gaussian-KL) là **đề xuất của dự án**, tách riêng
+  với hai paper để ablation minh bạch (`alignment.adaptive_gate=false` để tắt).
+- Baseline KeepLoRA nguyên gốc (merge sau task, không distillation) chạy bằng
+  `experiment=keeplora_original`.
+- Mixed precision fp16 có thể bật bằng `experiment.train.amp=true` (GPU TensorCore: T4/RTX/A100);
+  preset `*_8gb` đã bật sẵn.
+- **Tự động resume** khi phiên bị ngắt (Colab/Kaggle): bật snapshot giữa task bằng
+  `experiment.checkpoint_every_epochs=1`; chạy lại cùng lệnh với cùng `output_dir` sẽ tiếp tục từ
+  đúng epoch. Log theo dõi catastrophic forgetting nằm ở `history.jsonl`, `train_log.csv` và
+  TensorBoard (`eval/running_forgetting`) — chi tiết trong [docs/RUN_DIRECTION1.md](docs/RUN_DIRECTION1.md) mục 6.
+- Hướng 2 (RSIAT + Bi-RAE), ViT/CLIP wrapper đa dạng hơn và runner riêng vẫn là scaffold; chúng
+  chưa được thực thi hoặc benchmark. Pipeline Hướng 1 chưa được benchmark trên GPU thật.
+
+## Chạy trên Kaggle
+
+Notebook [`notebooks/kaggle_train.ipynb`](notebooks/kaggle_train.ipynb) cho phép huấn luyện toàn bộ
+pipeline trên GPU T4/P100 của Kaggle (AMP fp16 + TF32 bật sẵn) thay vì máy local: upload repo dưới
+dạng Dataset (hoặc điền `REPO_URL` để clone), chọn accelerator rồi chạy tuần tự các cell — cell cuối
+đóng gói checkpoint/metrics/accuracy-matrix thành `results.zip`.

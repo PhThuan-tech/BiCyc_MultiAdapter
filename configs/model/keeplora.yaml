@@ -1,0 +1,6 @@
+backbone: vit_base_patch16_224
+feature_dim: 768
+lora_rank: 8
+lora_alpha: 16
+freeze_backbone: true
+adapter_strategy: per_task

@@ -1,0 +1,12 @@
+# GPU setup for the local dev machine: RTX 4060 Laptop 8GB, driver 576.57 (CUDA 12.9).
+# Driver 12.9 >= runtime 12.4, so the cu124 wheels below are compatible.
+#
+# Install order matters (fresh environment recommended):
+#   conda create -n bicyc python=3.11 -y && conda activate bicyc
+#   # or: python -m venv .venv && .venv\Scripts\Activate.ps1
+#   pip install torch==2.5.1 torchvision==0.20.1 --index-url https://download.pytorch.org/whl/cu124
+#   pip install -r requirements/base.txt
+#   pip install -e .
+#
+# NOTE: if a CPU-only torch (e.g. 2.12.1+cpu) is already present, reinstall it
+# with the command above inside the new environment; do not mix wheels.

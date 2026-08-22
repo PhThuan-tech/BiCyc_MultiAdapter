@@ -1,0 +1,46 @@
+name: keeplora_bicyc
+method: keeplora_bicyc
+seed: 2024
+trainer: keeplora
+resume: true                 # tự động tiếp tục từ checkpoint trong output_dir nếu có
+checkpoint_every_epochs: 0   # >0: lưu snapshot giữa task mỗi N epoch (khuyến nghị trên cloud)
+defaults:
+  - /model: keeplora
+  - /data: cifar100_10tasks
+  - _self_
+image_size: 224
+# Transformer projections replaced by KeepLoRA-wrapped linears.
+targets: [qkv, proj, fc1, fc2]
+activation_cache_rows: 4096  # CPU rows kept per layer for the end-of-task SVD
+train:
+  epochs_per_task: 20
+  batch_size: 128
+  lr: 0.001
+  weight_decay: 0.0001
+  amp: false              # fp16 mixed precision; bật true trên GPU TensorCore (T4/RTX/A100)
+  amp_dtype: float16      # hoặc bfloat16 (Ampere+)
+alignment:
+  # BiCyc defaults from the paper; adaptive_distribution is this project's proposal.
+  enabled: true           # false => KeepLoRA-only baseline (ablation 1)
+  adaptive_gate: true     # false => lambda_t pinned to 1 (ablations 2-3)
+  lambda_bi: 5.0
+  lambda_cyc: 1.0
+  anti_collapse_weight: 0.0
+  distribution_metric: symmetric_diagonal_gaussian_kl
+  distribution_temperature: 1.0
+  lambda_min: 0.1
+  lambda_max: 1.0
+  alignment_lr: 0.001
+keeplora:
+  weight_energy: 0.95
+  feature_energy: 0.95
+  gradient_init_loss: classification_only
+  # Original KeepLoRA merges; the hybrid keeps frozen blocks for PFD routing.
+  merge_after_task: false
+  adapter_strategy: routed_multi_adapter
+  router_similarity: l2
+  router_temperature: 1.0
+  router_top_k: 3
+classifier:
+  covariance_mode: full_shared  # or diagonal
+  shrinkage: 0.0001

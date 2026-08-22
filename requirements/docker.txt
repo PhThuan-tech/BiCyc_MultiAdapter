@@ -1,0 +1,2 @@
+# torch/torchvision come from the pinned PyTorch CUDA base image.
+-r base.txt
