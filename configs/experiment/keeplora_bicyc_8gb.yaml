@@ -20,15 +20,18 @@ train:
   weight_decay: 0.0001
   amp: true               # fp16 mixed precision: big speedup on T4/RTX tensor cores
   amp_dtype: float16
+  phase_stability_start: 0.35
+  phase_stability_min: 0.75
+  phase_stability_max: 1.0
 alignment:
   enabled: true
   adaptive_gate: true
-  lambda_bi: 5.0
-  lambda_cyc: 1.0
+  lambda_bi: 8.0
+  lambda_cyc: 2.0
   anti_collapse_weight: 0.0
   distribution_metric: symmetric_diagonal_gaussian_kl
   distribution_temperature: 1.0
-  lambda_min: 0.1
+  lambda_min: 0.4
   lambda_max: 1.0
   alignment_lr: 0.001
 keeplora:
@@ -39,7 +42,7 @@ keeplora:
   adapter_strategy: routed_multi_adapter
   router_similarity: l2
   router_temperature: 1.0
-  router_top_k: 3
+  router_top_k: 2
 classifier:
   covariance_mode: full_shared
   shrinkage: 0.0001

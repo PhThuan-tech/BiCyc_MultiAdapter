@@ -106,6 +106,9 @@ class DirectionOneExperiment:
             anti_collapse_weight=float(align_cfg.get("anti_collapse_weight", 0.0)),
             use_amp=bool(self.train_cfg.get("amp", False)),
             amp_dtype=str(self.train_cfg.get("amp_dtype", "float16")),
+            phase_stability_start=float(self.train_cfg.get("phase_stability_start", 0.35)),
+            phase_stability_min=float(self.train_cfg.get("phase_stability_min", 0.75)),
+            phase_stability_max=float(self.train_cfg.get("phase_stability_max", 1.0)),
         )
         self.bicycle = BidirectionalCycle(int(model_cfg.feature_dim)).to(self.device)
         self.classifier = GaussianCILClassifier(
@@ -184,11 +187,22 @@ class DirectionOneExperiment:
         try:
             for epoch in range(first_epoch, total_epochs):
                 running: dict[str, float] = {}
+                phase_scale = KeepLoRATrainer.phase_scale(
+                    epoch,
+                    total_epochs,
+                    start=self.align_config.phase_stability_start,
+                    minimum=self.align_config.phase_stability_min,
+                    maximum=self.align_config.phase_stability_max,
+                )
                 for images, labels in tqdm(train_loader, desc=f"task {task_id} epoch {epoch}", leave=False):
-                    stats = trainer.train_batch(images.to(self.device, non_blocking=True), labels.to(self.device))
-                    self.model.update_routing_statistics(task_id)  # online PFD means
-                    for key, value in stats.items():
-                        running[key] = running.get(key, 0.0) + value / len(train_loader)
+                   stats = trainer.train_batch(
+                       images.to(self.device, non_blocking=True),
+                       labels.to(self.device),
+                       phase_scale=phase_scale,
+                   )
+                   self.model.update_routing_statistics(task_id)  # online PFD means
+                   for key, value in stats.items():
+                       running[key] = running.get(key, 0.0) + value / len(train_loader)
                 for key, value in running.items():
                     self.writer.add_scalar(f"{key}/task{task_id}", value, epoch)
                 self._append_epoch_log(task_id, epoch, running)

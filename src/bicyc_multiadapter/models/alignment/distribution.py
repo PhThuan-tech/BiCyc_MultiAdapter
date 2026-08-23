@@ -49,11 +49,19 @@ def adaptive_alignment_weight(
     lambda_max: float,
     temperature: float,
 ) -> tuple[Tensor, Tensor]:
-    """Return detached (lambda_adaptive, distribution_distance)."""
+    """Return detached (lambda_adaptive, distribution_distance).
+
+    The gate grows with feature drift so that stronger distribution shift raises the
+    stabilizer weight instead of collapsing towards ``lambda_min``. This is the
+    practical fix for the smoke-test failure mode where the model keeps plasticity
+    but forgets old tasks too quickly.
+    """
     if lambda_min < 0 or lambda_max < lambda_min or temperature <= 0:
         raise ValueError("Require 0 <= lambda_min <= lambda_max and temperature > 0.")
     old = estimate_diagonal_gaussian(old_features.detach())
     new = estimate_diagonal_gaussian(new_features.detach())
     distance = symmetric_gaussian_kl(old, new)
-    weight = lambda_min + (lambda_max - lambda_min) * (-distance / temperature).exp()
+    # Increase the stabilizer exactly when the old/new feature distributions drift apart;
+    # this keeps the gate from saturating at the minimum when stability is most needed.
+    weight = lambda_min + (lambda_max - lambda_min) * (1.0 - (-distance / temperature).exp())
     return weight.detach(), distance.detach()

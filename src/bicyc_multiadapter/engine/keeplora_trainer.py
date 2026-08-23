@@ -18,9 +18,9 @@ from bicyc_multiadapter.models.alignment.distribution import adaptive_alignment_
 
 @dataclass(frozen=True)
 class KeepLoRABiCycConfig:
-    lambda_bi: float = 5.0
-    lambda_cyc: float = 1.0
-    lambda_min: float = 0.1
+    lambda_bi: float = 8.0
+    lambda_cyc: float = 2.0
+    lambda_min: float = 0.4
     lambda_max: float = 1.0
     distribution_temperature: float = 1.0
     use_adaptive_gate: bool = True   # False pins lambda_t=1 (fixed-BiCyc ablation)
@@ -28,6 +28,9 @@ class KeepLoRABiCycConfig:
     anti_collapse_weight: float = 0.0
     use_amp: bool = False            # mixed precision for both steps (CUDA only)
     amp_dtype: str = "float16"       # "float16" (T4/RTX, needs GradScaler) or "bfloat16"
+    phase_stability_start: float = 0.35
+    phase_stability_min: float = 0.75
+    phase_stability_max: float = 1.0
 
 
 _AMP_DTYPES = {"float16": torch.float16, "bfloat16": torch.bfloat16}
@@ -74,7 +77,24 @@ class KeepLoRATrainer:
         for parameter in module.parameters():
             parameter.requires_grad_(enabled)
 
-    def train_batch(self, images: Tensor, labels: Tensor) -> dict[str, float]:
+    @staticmethod
+    def phase_scale(
+        epoch_index: int,
+        total_epochs: int,
+        start: float = 0.35,
+        minimum: float = 0.75,
+        maximum: float = 1.0,
+    ) -> float:
+        """A simple phase schedule: early epochs prioritize plasticity, later epochs stabilize old tasks."""
+        if total_epochs <= 1:
+            return maximum
+        progress = (epoch_index + 1) / total_epochs
+        if progress <= start:
+            return minimum + (maximum - minimum) * (progress / max(start, 1e-6))
+        return maximum
+
+    def train_batch(self, images: Tensor, labels: Tensor, phase_scale: float = 1.0) -> dict[str, float]:
+        phase_scale = float(max(0.0, min(phase_scale, 1.0)))
         old_features = None
         if self.old_model is not None:
             with torch.no_grad(), self._autocast():
@@ -103,6 +123,7 @@ class KeepLoRATrainer:
                         self.config.lambda_max,
                         self.config.distribution_temperature,
                     )
+                    adaptive = adaptive * phase_scale
                 model_loss = classification + adaptive * self.config.lambda_bi * backward_term
                 if self.config.anti_collapse_weight > 0:
                     # Cholesky requires fp32 for numerical stability.
@@ -120,7 +141,10 @@ class KeepLoRATrainer:
         self.alignment_optimizer.zero_grad(set_to_none=True)
         with self._autocast():
             alignment_terms = bicyc_loss(self.bicycle, old_features.detach(), new_features.detach())
-            alignment_loss = alignment_terms.total(self.config.lambda_bi, self.config.lambda_cyc)
+            alignment_loss = alignment_terms.total(
+                self.config.lambda_bi * phase_scale,
+                self.config.lambda_cyc * phase_scale,
+            )
         self.scaler_alignment.scale(alignment_loss).backward()
         self.scaler_alignment.step(self.alignment_optimizer)
         self.scaler_alignment.update()
