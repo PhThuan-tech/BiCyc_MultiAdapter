@@ -110,21 +110,33 @@ class KeepLoRACILModel(nn.Module):
             raise RuntimeError("No target linear layer matched; check ``target_patterns``.")
 
     def expand_head(self, class_ids: tuple[int, ...]) -> None:
-        """Grow the training head; old rows copied verbatim, new rows freshly init."""
+        """Grow the training head; old rows copied verbatim, new rows freshly init.
+
+        The head is created lazily, i.e. after ``Model.to(device)`` has already
+        run, so every newly created/shrunk head must be moved back to the device
+        inferred from the patched layers' frozen base weights.
+        """
         width = max(class_ids) + 1
+        device = None
+        if self.head is not None:
+            device = self.head.weight.device
+        elif self.layers:
+            device = next(iter(self.layers.values())).base_weight.device
         if self.head is None:
             self.head = nn.Linear(self.feature_dim, width)
-            return
-        if width <= self.head.out_features:
-            return
-        widened = nn.Linear(self.feature_dim, width)
-        old_width = self.head.out_features
-        with torch.no_grad():
-            widened.weight[:old_width] = self.head.weight
-            widened.bias[:old_width] = self.head.bias
-            nn.init.kaiming_uniform_(widened.weight[old_width:], a=5**0.5)
-            widened.bias[old_width:].zero_()
-        self.head = widened
+        else:
+            if width <= self.head.out_features:
+                return
+            widened = nn.Linear(self.feature_dim, width)
+            old_width = self.head.out_features
+            with torch.no_grad():
+                widened.weight[:old_width] = self.head.weight
+                widened.bias[:old_width] = self.head.bias
+                nn.init.kaiming_uniform_(widened.weight[old_width:], a=5**0.5)
+                widened.bias[old_width:].zero_()
+            self.head = widened
+        if device is not None:
+            self.head = self.head.to(device)
 
     def begin_task(self, task_id: int, train_loader, device) -> None:
         """Residual-gradient SVD init from a single CE-only pass (KeepLoRA Eq. 6)."""
@@ -267,10 +279,11 @@ class KeepLoRACILModel(nn.Module):
         if "head.weight" in state and self.head is not None:
             width = state["head.weight"].shape[0]
             if self.head.out_features > width:
+                device = self.head.weight.device
                 shrunk = nn.Linear(self.head.in_features, width)
                 shrunk.weight.copy_(self.head.weight[:width])
                 shrunk.bias.copy_(self.head.bias[:width])
-                self.head = shrunk
+                self.head = shrunk.to(device)
 
     def _resolve_registry(self, name: str):
         """State keys may reference a layer via ``encoder.network.*`` or the flat dict key."""

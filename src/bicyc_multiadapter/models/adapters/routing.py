@@ -116,8 +116,19 @@ class RoutedKeepLoRALinear(nn.Module):
         if not self.adapters or not self.router.means.keys():
             # Nothing routed yet (task-0 init pass or pre-first PFD update).
             return base_features + (0 if self.bias is None else self.bias)
-        keys, weights = self.router.routing_weights(base_features.detach(), top_k if top_k is not None else self.top_k)
+        # Transformer linears emit [batch, tokens, d_out]; routing statistics are
+        # row-based, so flatten tokens, route per row, then restore the layout.
+        feats = base_features.detach()
+        rows = feats.reshape(-1, feats.shape[-1])
+        keys, weights = self.router.routing_weights(rows, top_k if top_k is not None else self.top_k)
         output = base_features
         for index, key in enumerate(keys):
-            output = output + weights[:, index].unsqueeze(-1) * self.adapters[key].delta(inputs)
+            if key not in self.adapters:
+                continue  # defensive: a mean without its adapter (should not happen)
+            weight_column = weights[:, index]
+            if base_features.dim() == 3:
+                weight_column = weight_column.view(feats.shape[0], feats.shape[1], 1)
+            else:
+                weight_column = weight_column.unsqueeze(-1)
+            output = output + weight_column * self.adapters[key].delta(inputs)
         return output + (0 if self.bias is None else self.bias)

@@ -56,8 +56,10 @@ class GaussianCILClassifier:
         The projector is ``y = x W^T + b`` so mu' = mu W^T + b and the full
         covariance transforms as W Sigma W^T (diagonal: Var_i' = sum_j W_ij^2 Var_j).
         """
-        weight = projector.net.weight
-        bias = 0 if projector.net.bias is None else projector.net.bias
+        # Gaussian statistics are kept on CPU; bring the projector to CPU so the
+        # transport arithmetic (and the loaded checkpoint comparison) stays put.
+        weight = projector.net.weight.detach().cpu()
+        bias = 0 if projector.net.bias is None else projector.net.bias.detach().cpu()
         for gaussian in self.gaussians.values():
             gaussian.mean = (gaussian.mean @ weight.T + bias).detach().cpu()
             if self.covariance_mode == "full_shared":
@@ -99,7 +101,10 @@ class GaussianCILClassifier:
         return [torch.diag(g.scatter / max(g.count - 1, 1)).to(device) for g in gaussians]
 
     def predict(self, features: Tensor) -> Tensor:
-        return self.scores(features).argmax(dim=1)
+        """Argmax mapped back to real class IDs (labels may be any permutation subset)."""
+        classes = sorted(self.gaussians)
+        best = self.scores(features).argmax(dim=1)
+        return torch.as_tensor(classes, device=features.device)[best]
 
     # ------------------------------------------------------------- persistence
     def export_state(self) -> dict:

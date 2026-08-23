@@ -155,6 +155,7 @@ class DirectionOneExperiment:
         total_epochs = int(self.train_cfg.epochs_per_task)
         resumed_mid_task = skip_task_init
         self.model.expand_head(spec.class_ids)
+        self.model.head.to(self.device)  # head is created lazily after .to(device)
         if resumed_mid_task:
             # Adapter/PFD/head state arrives from the checkpoint; only re-arm hooks.
             self.model._register_hooks()
@@ -204,6 +205,11 @@ class DirectionOneExperiment:
         except KeyboardInterrupt:
             print(f"[interrupt] dung tai task {task_id} epoch {epoch}; luu checkpoint de resume...")
             self._save_live_checkpoint(task_id, epoch, model_optimizer, alignment_optimizer, next_epoch=epoch)
+            raise
+        except Exception as error:
+            # Any runtime crash (OOM, shape bug, ...) still preserves progress.
+            print(f"[error] {type(error).__name__} tai task {task_id} epoch {epoch}; luu checkpoint de resume...")
+            self._save_live_checkpoint(task_id, epoch, model_optimizer, alignment_optimizer, next_epoch=max(epoch, 0))
             raise
 
         # Consolidation: transport old class stats through A, then fit current-task stats.
@@ -311,6 +317,9 @@ class DirectionOneExperiment:
         self.model.restore_structure(payload["model"])
         self.model.load_state_dict(payload["model"])
         self.model.load_memory_state(payload.get("memory", {}))
+        # Resume recreates dynamic modules (adapters / PFD means / head) AFTER
+        # the model was already moved to the device, so push everything back.
+        self.model.to(self.device)
         self.bicycle.load_state_dict(payload["bicycle"])
         self.classifier.load_state(payload["classifier"])
         self.accuracy_matrix = [list(map(float, row)) for row in payload["accuracy_matrix"]]
@@ -406,6 +415,7 @@ class DirectionOneExperiment:
         self.model.restore_structure(payload["model"])
         self.model.load_state_dict(payload["model"])
         self.model.load_memory_state(payload.get("memory", {}))
+        self.model.to(self.device)
         self.bicycle.load_state_dict(payload["bicycle"])
         self.classifier.load_state(payload["classifier"])
         self.model.eval()
