@@ -203,6 +203,37 @@ class KeepLoRACILModel(nn.Module):
             if last is not None:
                 layer.update_distribution(task_id, last)
 
+    @torch.no_grad()
+    def routing_probe(self, images: Tensor) -> dict[str, dict[str, float]]:
+        """One diagnostic forward: mean routing weight per adapter and per layer.
+
+        The runner calls this on a single eval-task batch after later tasks have been
+        learned; it directly exposes routed-adapter interference, the suspected cause
+        of old-task accuracy collapsing below the random baseline in smoke runs.
+
+        The regular capture hooks are removed at ``end_task`` (they only serve
+        training), so this probe registers its own temporary forward hooks, runs one
+        forward, and releases them -- no state pollution, safe to call in eval mode.
+        """
+        captured: dict[str, Tensor] = {}
+        handles = []
+
+        for name, layer in self.layers.items():
+
+            def capture_hook(_module, inputs, _output, key: str = name):
+                detached = inputs[0].detach()
+                captured[key] = detached.reshape(-1, detached.shape[-1])
+
+            handles.append(layer.register_forward_hook(capture_hook))
+        try:
+            self.encoder.forward_features(images)  # drives the patched layers
+        finally:
+            for handle in handles:
+                handle.remove()
+        return {
+            name: layer.route_report(captured[name]) for name, layer in self.layers.items() if name in captured
+        }
+
     def trainable_parameters(self) -> list[Tensor]:
         """Model-optimizer scope: current-task B factors plus the growing head."""
         return [parameter for parameter in self.parameters() if parameter.requires_grad]

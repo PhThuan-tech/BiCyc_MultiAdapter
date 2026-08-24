@@ -26,3 +26,24 @@ def test_routed_forward_supports_token_activations() -> None:
     layer.add_task(1, initialize_lora_from_gradient(torch.randn(8, 8), None, rank=2))
     layer.update_distribution(1, torch.randn(16, 8))
     assert layer(tokens).shape == tokens.shape
+
+
+def test_route_report_assigns_own_adapter_the_highest_weight() -> None:
+    """Diagnostic probe: a batch from task 0 must route mostly to the task-0 adapter.
+
+    This is the measurable signal for the routed-adapter interference suspected in
+    the smoke run, where task 0 accuracy collapsed below random after task 1.
+    """
+    torch.manual_seed(0)
+    layer = RoutedKeepLoRALinear(torch.randn(8, 8), None, alpha=4)
+    layer.add_task(0, initialize_lora_from_gradient(torch.randn(8, 8), None, rank=2))
+    layer.add_task(1, initialize_lora_from_gradient(torch.randn(8, 8), None, rank=2))
+    probe = torch.randn(16, 8)
+    layer.update_distribution(0, probe)
+    layer.update_distribution(1, probe + 1.0)  # separable second-task mean
+    report = layer.route_report(probe)
+    assert set(report) == {"0", "1"}
+    assert 0.0 <= report["0"] <= 1.0 and 0.0 <= report["1"] <= 1.0
+    assert torch.allclose(torch.tensor([report["0"], report["1"]]).sum(), torch.tensor(1.0), atol=1e-6)
+    # Task-0 probes stay with the task-0 adapter.
+    assert report["0"] > report["1"]

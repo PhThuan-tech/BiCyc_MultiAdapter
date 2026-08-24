@@ -15,8 +15,9 @@ def main(cfg: DictConfig) -> None:
     # Imported lazily so --help stays fast and heavy deps load after Hydra resolves.
     from bicyc_multiadapter.engine.task_loop import DirectionOneExperiment
 
-    summary = DirectionOneExperiment(cfg).run()
-    print("Run summary:", summary)
+    experiment = DirectionOneExperiment(cfg)
+    summary = experiment.run()
+    experiment.log.info("Run summary: %s", summary)
 
 
 if __name__ == "__main__":

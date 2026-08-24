@@ -78,5 +78,18 @@ docker compose run --rm research python -m bicyc_multiadapter.train experiment=k
   với hai paper để ablation minh bạch (`alignment.adaptive_gate=false` để tắt).
 - Baseline KeepLoRA nguyên gốc (merge sau task, không distillation) chạy bằng
   `experiment=keeplora_original`.
+- Mixed precision fp16 có thể bật bằng `experiment.train.amp=true` (GPU TensorCore: T4/RTX/A100);
+  preset `*_8gb` đã bật sẵn.
+- **Tự động resume** khi phiên bị ngắt (Colab/Kaggle): bật snapshot giữa task bằng
+  `experiment.checkpoint_every_epochs=1`; chạy lại cùng lệnh với cùng `output_dir` sẽ tiếp tục từ
+  đúng epoch. Log theo dõi catastrophic forgetting nằm ở `history.jsonl`, `train_log.csv` và
+  TensorBoard (`eval/running_forgetting`) — chi tiết trong [docs/RUN_DIRECTION1.md](docs/RUN_DIRECTION1.md) mục 6.
 - Hướng 2 (RSIAT + Bi-RAE), ViT/CLIP wrapper đa dạng hơn và runner riêng vẫn là scaffold; chúng
   chưa được thực thi hoặc benchmark. Pipeline Hướng 1 chưa được benchmark trên GPU thật.
+
+## Chạy trên Kaggle
+
+Notebook [`notebooks/kaggle_train.ipynb`](notebooks/kaggle_train.ipynb) cho phép huấn luyện toàn bộ
+pipeline trên GPU T4/P100 của Kaggle (AMP fp16 + TF32 bật sẵn) thay vì máy local: upload repo dưới
+dạng Dataset (hoặc điền `REPO_URL` để clone), chọn accelerator rồi chạy tuần tự các cell — cell cuối
+đóng gói checkpoint/metrics/accuracy-matrix thành `results.zip`.

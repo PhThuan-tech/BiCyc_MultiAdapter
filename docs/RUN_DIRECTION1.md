@@ -150,6 +150,32 @@ Nếu vẫn thiếu VRAM, giảm dần theo thứ tự:
 3. `experiment.targets=[qkv,proj]` — giữ 2/4 loại projection (ảnh hưởng phạm vi thuật toán, ghi nhận khi báo cáo)
 4. `experiment.image_size=168` — thay đổi protocol, chỉ dùng cho thử nghiệm nhanh
 
+### 2.4 Smoke test toàn bộ pipeline (10 tasks, tránh OOM)
+
+Trước khi chạy thật (nhiều giờ), hãy xác minh pipeline chạy đủ **10 tasks** trên đúng GPU của bạn
+mà **không OOM**. Trên Colab chỉ cần bật `SMOKE_TEST = True` ở cell 5 (Tham số run) — notebook tự
+ghim batch 16 + 1 epoch/task + cache nhỏ (peak VRAM ~4GB trên T4). Chạy CLI tương đương:
+
+```bash
+python -m bicyc_multiadapter.train experiment=keeplora_bicyc_8gb \
+    experiment.seed=2024 \
+    experiment.data.root=/content/data/cifar100 \
+    experiment.data.num_workers=2 \
+    output_dir=/content/outputs/keeplora_bicyc_8gb/smoke \
+    experiment.train.epochs_per_task=1 \
+    experiment.train.batch_size=16 \
+    experiment.activation_cache_rows=1024 \
+    experiment.checkpoint_every_epochs=0
+```
+
+Kết quả đạt là run kết thúc với `Run hoan tat...` trong `run.log`, đủ
+`run_meta.json`/`train_log.csv`/`metrics.json`, và dòng task summary cuối có
+`GPU peak` thấp hơn hẳn VRAM card (vd. peak ~4GB trên T4 16GB → an toàn). Nếu `GPU peak`
+vượt ~85% VRAM, giảm `batch_size` (32 → 16 → 8) trước khi chạy thật.
+
+> ⚠️ Smoke test **không có ý nghĩa thống kê** (1 epoch/task). Đây chỉ là kiểm tra pipeline +
+> đo VRAM peak.
+
 ## 3. Dữ liệu
 
 - **CIFAR-100** tự động tải về `data/cifar100/` lần chạy đầu (qua torchvision, cần Internet).
@@ -202,14 +228,25 @@ Sau mỗi run, thư mục `outputs/<name>/seed_<seed>/` chứa:
 
 | File | Nội dung |
 | --- | --- |
+| `run.log` | Log có timestamp (đầu run: bảng `RUN CONFIG` gồm experiment, seed, backbone, batch_size, epochs_per_task, lr/wd, AMP, targets, alignment λ, cache rows, data_root, output_dir). Sau mỗi task: `acc= <row> | delta_cu=<thay đổi acc các task cũ> | last_avg inc_avg forget | time cum eta | GPU alloc=...GiB peak=...GiB` — xem ngay forgetting từng bước + VRAM peak. |
+| `run_meta.json` | Metadata môi trường (Python, torch, timm, CUDA device, git commit, config resolved) + summary cuối run |
+| `config_resolved.yaml` | Bản dump toàn bộ cấu hình Hydra sau khi resolve — giúp tái tạo chính xác run |
 | `checkpoint_last.pt` | state_dict model (basis W_p, M_t, factor A/B, PFD means), map BiCyc, thống kê Gaussian classifier, class order, accuracy matrix |
 | `checkpoint_boundary.pt` | **Rolling** snapshot sau mỗi task hoàn tất (ghi đè file cũ) — mốc resume đầu task mới |
 | `checkpoint_live.pt` | **Rolling** snapshot giữa task (mỗi `checkpoint_every_epochs` epoch hoặc khi Ctrl+C), kèm state 2 optimizer + RNG; tự xóa khi task xong |
+| `checkpoint_task_<t>.pt` | (Tùy chọn, khi `experiment.keep_task_checkpoints=true`) Bản snapshot riêng cho từng task — tốn ~350 MB/task |
 | `metrics.json` | `last_average`, `incremental_average`, `forgetting` + accuracy matrix đầy đủ (cập nhật sau mỗi task) |
 | `accuracy_matrix.csv` | ma trận độ chính xác [task_eval × task_seen] |
-| `history.jsonl` | mỗi task một dòng: per-task accuracy + `running_last_average/incremental_average/forgetting` tích lũy — theo dõi trực tiếp catastrophic forgetting |
-| `train_log.csv` | loss (CE/model/backward/alignment, KL distance, λ_adaptive) theo từng epoch |
-| `tensorboard/` | loss CE/model/alignment, KL distance, λ_adaptive theo từng epoch/task |
+| `history.jsonl` | mỗi task một dòng: per-task accuracy + `running_last_average/incremental_average/forgetting` tích lũy + `task_duration_seconds` + `train` (stat last epoch) |
+| `train_log.csv` | loss (CE/model/backward/alignment, KL distance, λ_adaptive, phase_scale, samples_per_sec, epoch_time_s) theo từng epoch. Từ bản sửa gate: `distribution/distance` là KL thô (tổng theo chiều), `distribution/distance_per_dim` là KL trung bình/chiều — giá trị dùng để điều khiển gate nên nằm ở scale tương đương giữa các model có feature_dim khác nhau |
+| `tensorboard/` | loss CE/model/alignment, KL distance, λ_adaptive theo từng epoch/task + `routing/own_weight/{layer}` (diagnostic) |
+| `run.log` | dòng `[routing] eval task T -> <layer>: own=… max_other=…` sau mỗi task: tỉ lệ trọng số router rơi vào adapter đúng của task được eval. Nếu task cũ bị route sang adapter task mới (`own` thấp), đó là bằng chứng trực tiếp của routing interference gây forgetting |
+
+### 5.1 Lưu ý về checkpoint
+
+- **CPU-safe**: tất cả tensor được chuyển về CPU trước khi ghi file, nên việc lưu checkpoint không cần thêm GPU memory (quan trọng khi lưu ngay sau OOM).
+- **Versioning**: checkpoint có trường `checkpoint_version` để đảm bảo tương thích ngược khi thay đổi schema.
+- **Atomic write**: ghi qua file `.tmp` rồi rename, không bị corrupt nếu mất điện giữa chừng.
 
 ## 6. Resume khi bị ngắt giữa chừng (Colab/Kaggle/local)
 
@@ -236,3 +273,22 @@ Pipeline **tự động resume**: chỉ cần chạy lại đúng lệnh train v
   (xem DIRECTION1_SPEC.md, mục "Ablation tối thiểu").
 - **Snapshot teacher** tăng thêm ~350 MB VRAM (deep-copy ViT-B); với GPU 8 GB hãy dùng preset
   `*_8gb.yaml` (mục 2.3).
+- **Colab**:
+  - **Python version**: Chọn runtime **Python 3.11 hoặc 3.12** (Runtime → Change runtime type).
+    Python 3.13 không tương thích vì `numpy==1.26.4`, `scipy==1.14.1`, `scikit-learn==1.5.2` không có
+    wheel cho 3.13. Notebook có guard tự động kiểm tra.
+  - **Outputs**: Mặc định ghi vào đĩa local `/content/outputs/` (nhanh, tránh rate-limit Google Drive).
+    Cuối run notebook tự động zip + copy sang Drive. Muốn resume qua các phiên, đặt
+    `OUTPUTS_ON_DRIVE = True` trong cell 7 (Tham số run) — chậm hơn (~20–60s/lần checkpoint 350MB)
+    nhưng giữ được checkpoint khi session chết.
+  - **Data**: CIFAR-100 tự tải 1 lần, lưu vào Google Drive (không tải lại giữa các phiên).
+  - **GPU**: T4 16GB hỗ trợ AMP fp16. Dùng preset `keeplora_bicyc_8gb` (batch 32) cho T4/P100.
+  - **Smoke test trước khi chạy thật**: bật `SMOKE_TEST = True` ở cell 5 (Tham số run) — notebook ghim
+    batch 16 + 1 epoch/task + cache nhỏ (peak VRAM ~4GB trên T4, không thể OOM). Chạy hết 10 tasks
+    ~20–40 phút để xác minh pipeline. Sau đó tắt `SMOKE_TEST` để chạy thật.
+  - **Theo dõi VRAM ngay trong log**: sau mỗi task, `run.log` in dòng `GPU alloc=...GiB peak=...GiB`.
+    Nếu peak vượt ~85% VRAM card, giảm `BATCH_SIZE` (32 → 16 → 8) ở cell 5.
+  - **Checkpoint every epoch**: `checkpoint_every_epochs=1` (mặc định trong notebook) ghi ~350MB mỗi
+    epoch; nếu dùng Drive, giảm xuống 0 hoặc tăng khoảng cách để tránh rate-limit.
+  - **Resume**: Chạy lại cell 8 (HUẤN LUYỆN) sau khi session reconnect. Nếu thay đổi `EPOCHS_PER_TASK`
+    giữa 2 lần, guard tự động báo lỗi thay vì âm thầm huấn luyện sai.

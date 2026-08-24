@@ -65,6 +65,18 @@ class PresentativeFeatureRouter(nn.Module):
         del self.means[key]
         del self.counts[key]
 
+    @torch.no_grad()
+    def selection_report(self, frozen_base_features: Tensor, top_k: int | None = None) -> dict[str, float]:
+        """Mean routing weight per task prototype for one probe batch (diagnostic).
+
+        Lets the runner check whether old-task probes are routed to their own frozen
+        adapter or leak to later tasks -- the direct failure mode measured in the
+        smoke run (task 0 fell below the random baseline right after task 1).
+        """
+        task_ids, weights = self.routing_weights(frozen_base_features.detach().float(), top_k)
+        means = weights.mean(dim=0)
+        return {task_id: float(means[index]) for index, task_id in enumerate(task_ids)}
+
 
 class RoutedKeepLoRALinear(nn.Module):
     """Proposed multi-adapter extension: KeepLoRA factors + PFD dynamic routing.
@@ -110,6 +122,13 @@ class RoutedKeepLoRALinear(nn.Module):
         """Online update; ``.float()`` keeps means fp32 even under AMP forwards."""
         detached = layer_inputs.detach().float()
         self.router.update_distribution(task_id, detached @ self.base_weight)
+
+    @torch.no_grad()
+    def route_report(self, inputs: Tensor, top_k: int | None = None) -> dict[str, float]:
+        """Per-adapter mean routing weight for one probe batch (diagnostic only)."""
+        feats = (inputs.detach().float() @ self.base_weight).float()
+        rows = feats.reshape(-1, feats.shape[-1])
+        return self.router.selection_report(rows, top_k if top_k is not None else self.top_k)
 
     def forward(self, inputs: Tensor, top_k: int | None = None) -> Tensor:
         base_features = inputs @ self.base_weight

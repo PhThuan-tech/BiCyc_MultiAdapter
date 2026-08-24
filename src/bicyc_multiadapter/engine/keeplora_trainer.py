@@ -109,14 +109,17 @@ class KeepLoRATrainer:
             model_loss = classification
             device = images.device
             adaptive = torch.tensor(1.0, device=device)
-            distance = torch.tensor(0.0, device=device)
+            distance_raw = torch.tensor(0.0, device=device)
+            distance_per_dim = torch.tensor(0.0, device=device)
             backward_term = torch.tensor(0.0, device=device)
             if old_features is not None and self.config.use_distillation:
                 model_terms = bicyc_loss(self.bicycle, old_features, new_features)
                 backward_term = model_terms.backward
                 if self.config.use_adaptive_gate:
                     # fp32 statistics: KL over 768 dims can overflow in half precision.
-                    adaptive, distance = adaptive_alignment_weight(
+                    # The raw symmetric KL is a sum over feature_dim, so it is normalised
+                    # per dimension inside the gate function to avoid saturation.
+                    adaptive, distance_per_dim, distance_raw = adaptive_alignment_weight(
                         old_features.float(),
                         new_features.float(),
                         self.config.lambda_min,
@@ -153,6 +156,7 @@ class KeepLoRATrainer:
             "loss/model": float(model_loss.detach()),
             "loss/alignment": float(alignment_loss.detach()),
             "loss/backward": float(backward_term.detach()),
-            "distribution/distance": float(distance),
+            "distribution/distance": float(distance_raw),
+            "distribution/distance_per_dim": float(distance_per_dim),
             "distribution/lambda_adaptive": float(adaptive),
         }

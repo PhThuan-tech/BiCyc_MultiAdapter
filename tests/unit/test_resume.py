@@ -153,11 +153,11 @@ def test_interrupted_run_resumes_from_live_checkpoint(monkeypatch, tmp_path) -> 
     original_step = tl.KeepLoRATrainer.train_batch
     calls = {"count": 0}
 
-    def flaky_step(self, images, labels):
+    def flaky_step(self, images, labels, phase_scale=1.0):
         calls["count"] += 1
         if calls["count"] >= 9:  # task 0 needs 6 steps; die early inside task 1
             raise KeyboardInterrupt
-        return original_step(self, images, labels)
+        return original_step(self, images, labels, phase_scale=phase_scale)
 
     tl.KeepLoRATrainer.train_batch = flaky_step
     try:

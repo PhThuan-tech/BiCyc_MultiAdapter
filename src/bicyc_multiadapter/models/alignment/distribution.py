@@ -48,20 +48,30 @@ def adaptive_alignment_weight(
     lambda_min: float,
     lambda_max: float,
     temperature: float,
-) -> tuple[Tensor, Tensor]:
-    """Return detached (lambda_adaptive, distribution_distance).
+) -> tuple[Tensor, Tensor, Tensor]:
+    """Return detached ``(lambda_adaptive, distance_per_dim, distance_raw)``.
 
     The gate grows with feature drift so that stronger distribution shift raises the
     stabilizer weight instead of collapsing towards ``lambda_min``. This is the
     practical fix for the smoke-test failure mode where the model keeps plasticity
     but forgets old tasks too quickly.
+
+    The raw symmetric KL is a *sum* over ``feature_dim`` terms, so its magnitude
+    scales with the model width: ViT-B (768 dims) produces values in the hundreds,
+    which makes ``exp(-distance / temperature) ~ 0`` and pins the gate at
+    ``lambda_max`` for every task -- i.e. the "adaptive" proposal degenerates into a
+    fixed maximum stabilizer. The gate is therefore driven by the *per-dimension*
+    mean KL, which is comparable across models of different feature widths, while
+    the raw sum is still returned for logging.
     """
     if lambda_min < 0 or lambda_max < lambda_min or temperature <= 0:
         raise ValueError("Require 0 <= lambda_min <= lambda_max and temperature > 0.")
     old = estimate_diagonal_gaussian(old_features.detach())
     new = estimate_diagonal_gaussian(new_features.detach())
-    distance = symmetric_gaussian_kl(old, new)
+    distance = symmetric_gaussian_kl(old, new).clamp_min(0.0)
+    feature_dim = max(int(old_features.shape[1]), 1)
+    distance_per_dim = distance / feature_dim
     # Increase the stabilizer exactly when the old/new feature distributions drift apart;
     # this keeps the gate from saturating at the minimum when stability is most needed.
-    weight = lambda_min + (lambda_max - lambda_min) * (1.0 - (-distance / temperature).exp())
-    return weight.detach(), distance.detach()
+    weight = lambda_min + (lambda_max - lambda_min) * (1.0 - (-distance_per_dim / temperature).exp())
+    return weight.detach(), distance_per_dim.detach(), distance.detach()
