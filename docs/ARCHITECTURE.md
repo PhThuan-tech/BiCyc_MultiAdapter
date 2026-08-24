@@ -1,57 +1,105 @@
-# Kiến trúc source code
+# Kiến trúc Hệ thống & Sơ đồ Luồng Hoạt động (Architecture)
 
-```text
-image -> Frozen backbone -> adapter -> classifier -> CE loss
-                  |              |
-                  |              +-> current feature
-                  +-> old snapshot feature (no_grad, only incremental tasks)
+Tài liệu này mô tả chi tiết kiến trúc phần mềm, dòng chảy dữ liệu (dataflow) và cơ chế cô lập gradient (gradient barrier) cho toàn bộ hệ thống thí nghiệm **BiCyc Multi-Adapter**.
+
+---
+
+## 1. Sơ đồ Luồng Dữ liệu Tổng thể (End-to-End Dataflow)
+
+```mermaid
+graph TD
+    subgraph "1. Data Streaming (CIFAR-100 Task Stream)"
+        X["Batch Ảnh Hiện Tại x_t"]
+        Y["Nhãn Lớp y_t"]
+    end
+
+    subgraph "2. Backbone & Multi-Adapter Extraction"
+        X --> ViT["Frozen ViT-Base Backbone (timm)"]
+        ViT --> Blocks["Transformer Blocks (qkv, proj, fc1, fc2)"]
+        Blocks --> Router["PFD Dynamic Router: Φ_{cos}(q, D_j)"]
+        Router --> LoRA["RoutedKeepLoRA: ΔW_j = (α/r) A_j (B_j - B_j⁰)"]
+        LoRA --> Znew["Current Features z_new ∈ R^768"]
+        
+        X --> Teacher["Frozen Teacher Snapshot f_{t-1}(x)"]
+        Teacher --> Zold["Old Features z_old ∈ R^768 (no_grad)"]
+    end
+
+    subgraph "3. Novel Alignment & Gating"
+        Znew & Zold --> KL["Per-channel Gaussian-KL: δ_{t,i}"]
+        KL --> Gate["Vector Adaptive Gate: λ_{t,i} ∈ [λ_min, λ_max]^d"]
+        
+        Znew --> D["Distiller Map D: z_new ➔ z_old"]
+        Zold --> A["Adapter Map A: z_old ➔ z_new"]
+        
+        D & Zold & Gate --> Ldistill["Gated Distillation Loss: L_distill"]
+        A & D & Znew & Zold --> Lbicyc["Alignment Loss: L_BiCyc + L_iso"]
+    end
+
+    subgraph "4. Classification & Inference"
+        Znew --> LinearHead["Linear Head ➔ CE Loss (Train Task t)"]
+        Znew --> Bayes["Gaussian-Bayes Classifier: S(x, c)"]
+        A -.->|"Transport: μ'=Aμ, Σ'=AΣA^T"| Bayes
+    end
 ```
 
-| Nhánh | Mã nguồn chính | Đường gradient bắt buộc |
-| --- | --- | --- |
-| KeepLoRA + Adaptive BiCyc | `adapters/keeplora.py`, `alignment/bicyc.py`, `engine/keeplora_trainer.py` | Old snapshot không nhận gradient. A/D alignment và LoRA update là hai bước tách biệt. |
-| RSIAT + Bi-RAE | `adapters/rsiat.py`, `alignment/bi_rae.py`, `engine/rsiat_trainer.py` | Shared adapter nhận CE + RS/orthogonal + Bi-RAE loss. Bi-RAE không được dùng khi evaluate. |
+---
 
-## Hướng 1: KeepLoRA + BiCyc + PFD routing
+## 2. Ranh giới Gradient & Cơ chế 2 Optimizer
 
-KeepLoRA, BiCyc và Presentative Feature Distributions (PFD) không phải cùng một paper; hướng 1 là hybrid đề xuất. KeepLoRA/BiCyc/PFD phải giữ đúng công thức gốc, còn adaptive Gaussian-KL gate được tách riêng để ablation công bằng.
+Hệ thống bắt buộc tuân thủ nguyên tắc **Cách ly Gradient Tuyệt đối** để vừa bảo tồn tri thức cũ vừa không làm suy giảm khả năng học mới (*Plasticity*):
 
-Với một linear layer, dùng quy ước `x @ W`, \(W\in\mathbb{R}^{d_{in}\times d_{out}}\). KeepLoRA tạo principal weight basis \(W_p\) bằng SVD, gộp nó với basis feature cũ \(M_{t-1}\) thành basis trực chuẩn \(Q\), rồi:
+```mermaid
+sequenceDiagram
+    autonumber
+    participant D as DataLoader (x_t, y_t)
+    participant M as Model (ViT + B_t + Head)
+    participant T as Teacher Snapshot (f_{t-1})
+    participant B as BiCyc Maps (A & D)
+    participant O1 as Optimizer 1 (Model)
+    participant O2 as Optimizer 2 (Alignment)
 
-\[
-\hat G_t = (I - QQ^\top)G_t,\quad
-\hat G_t=U\Sigma V^\top,\quad
-A_t=U_{:,1:r},\quad B_t=\Sigma_{1:r,1:r}V_{:,1:r}^\top.
-\]
+    Note over M,B: === BƯỚC 1: MODEL STEP (Tối ưu B_t và Head) ===
+    D->>M: Forward x_t ➔ z_new, logits
+    D->>T: Forward x_t ➔ z_old (no_grad)
+    M->>B: Forward D(z_new) (đóng băng A, D)
+    Note over M: Loss_model = CE(logits, y_t) + λ_bi * L_distill(D(z_new), z_old, λ_vec)
+    O1->>M: Backprop Loss_model ➔ Cập nhật B_t và Head
+    Note over B: Không nhận gradient từ Bước 1!
 
-Khởi tạo function-preserving dùng \(W'=W-\frac{\alpha}{r}A_tB_t\), freeze \(A_t\), train \(B_t\), và merge \(W' +\frac{\alpha}{r}A_tB_t\) ở cuối task. Xem `adapters/keeplora.py`.
+    Note over M,B: === BƯỚC 2: ALIGNMENT STEP (Tối ưu A và D) ===
+    Note over M,T: Detach z_new (sg) và z_old (sg)
+    M->>B: Forward A(sg(z_old)), D(sg(z_new)), Cycle, Iso
+    Note over B: Loss_maps = λ_bi * L_bi + λ_cyc * L_cyc + λ_iso * L_iso
+    O2->>B: Backprop Loss_maps ➔ Chỉ cập nhật trọng số A và D
+    Note over M: Không có gradient nào truyền ngược về B_t hay Backbone!
+```
 
-BiCyc dùng \(z_{old}=f_{t-1}(x)\), \(z_{new}=f_t(x)\), adapter \(A:z_{old}\to z_{new}\) và distiller \(D:z_{new}\to z_{old}\):
+---
 
-\[
-L_{bi}=\|D(z_{new})-z_{old}\|_2^2+
-\|A(z_{old})-\operatorname{sg}(z_{new})\|_2^2
-\]
+## 3. Vòng đời Huấn luyện một Task CIL (`DirectionOneExperiment`)
 
-\[
-L_{cyc}=\|A(D(\operatorname{sg}(z_{new})))-\operatorname{sg}(z_{new})\|_2^2+
-\|D(A(z_{old}))-\operatorname{sg}(z_{old})\|_2^2.
-\]
+Mỗi task $t \in \{0, \dots, T-1\}$ trải qua 6 giai đoạn có kiểm soát chặt chẽ:
 
-\[
-L_{BiCyc}=\lambda_{bi}L_{bi}+\lambda_{cyc}L_{cyc}.
-\]
+1. **`expand_head`**:
+   Mở rộng thêm số hàng trong `nn.Linear` classifier tương ứng với các class mới của task $t$. Các hàng của class cũ được giữ nguyên trọng số.
+2. **`begin_task`**:
+   * Chạy 1 lượt phân loại ban đầu trên toàn bộ stream dữ liệu của task $t$ để tích lũy ma trận gradient $G_t$.
+   * Chiếu trực giao gradient $\hat{G}_t = (I - Q_{t-1}Q_{t-1}^\top) G_t$.
+   * Phân tích SVD để khởi tạo $(A_t, B_t^{(0)})$, đóng băng $A_t$ và kích hoạt $B_t$.
+   * Gắn forward hooks thu thập kích hoạt đầu vào của 48 target linears (cache trên RAM CPU).
+3. **`train_epochs`**:
+   * Chạy vòng lặp huấn luyện theo cơ chế 2-Optimizer (`KeepLoRATrainer.train_batch`).
+   * Cập nhật vector kỳ vọng trực tuyến $\mathcal{D}_t^l = \mathbb{E}[W^l h^l(x)]$ cho PFD router sau mỗi batch.
+4. **`Consolidation`**:
+   * Chạy 1 lượt forward qua train set để trích xuất đặc trưng $z_{new}$.
+   * Nếu $t > 0$: Vận chuyển thống kê của toàn bộ class cũ qua mạng $A$:
+     $$\mu'_c = \mu_c W_A^\top + b_A, \qquad \Sigma'_c = W_A \Sigma_c W_A^\top$$
+   * Fit kỳ vọng $\mu_c$ và hiệp phương sai $\Sigma_c$ cho các class mới của task $t$.
+5. **`end_task`**:
+   * Trích xuất các hướng kích hoạt dư từ cache, phân tích SVD để cập nhật Feature Memory $M_t = \operatorname{orth}([M_{t-1}, U_{t, 1:m}])$.
+   * Đóng băng hoàn toàn ma trận $B_t$.
+6. **`snapshot` & `_evaluate_upto`**:
+   * Tạo bản sao bất biến (deep-copy snapshot) $f_t$ để làm Teacher cho task $t+1$.
+   * Đánh giá ma trận độ chính xác trên toàn bộ test set của các task đã học từ $0 \dots t$.
+   * Lưu checkpoint an toàn (rolling atomic save).
 
-Adaptive gate là đóng góp được đề xuất, không phải công thức của hai bài: fit Gaussian đường chéo trên paired features hiện tại, tính symmetric KL \(\delta_t\), rồi \(\lambda_t=\lambda_{min}+(\lambda_{max}-\lambda_{min})e^{-\delta_t/\tau}\). Như vậy task gần nhau bị căn chỉnh mạnh, task xa nhau ưu tiên plasticity. Xem `alignment/distribution.py`.
-
-PFD cung cấp phần multi-adapter: mỗi task giữ một mean statistic \(\mathcal D_k^l=\mathbb E[W^lh^l(x)]\). Feature hiện tại được so với các mean bằng negative-L2 hoặc dot-product, sau đó softmax/Top-K để mix các LoRA block. Vì KeepLoRA gốc merge adapter sau task còn PFD yêu cầu giữ adapter, `RoutedKeepLoRALinear` là biến thể nghiên cứu và cần được so sánh trực tiếp với KeepLoRA merge baseline.
-
-## Thứ tự hiện thực khuyến nghị
-
-1. Hiện thực `data/` và backbone frozen, sau đó baseline classifier CIL tối giản.
-2. Hiện thực KeepLoRA (SVD/projection) cùng test gradient isolation trước BiCyc.
-3. Hiện thực BiCyc fixed, sau đó adaptive coefficient và ablation.
-4. Hiện thực shared adapter + RS warm-up, rồi mới thêm Bi-RAE.
-5. Đưa toàn bộ metric vào `evaluation/`, chạy ba seed cho mỗi cấu hình.
-
-Mỗi nhánh có trainer độc lập bởi vì nghiệm thu gradient và lifecycle module khác nhau; chỉ dùng chung protocol dữ liệu, backbone, metric và tiện ích tái lập.

@@ -29,8 +29,25 @@ from pathlib import Path
 
 import numpy as np
 import torch
-from omegaconf import DictConfig, OmegaConf
-from torch.utils.tensorboard import SummaryWriter
+try:
+    from omegaconf import DictConfig, OmegaConf
+except ImportError:
+    DictConfig = dict  # type: ignore[assignment,misc]
+    OmegaConf = None  # type: ignore[assignment]
+try:
+    from torch.utils.tensorboard import SummaryWriter
+except (ImportError, AttributeError, ModuleNotFoundError):
+    class SummaryWriter:  # type: ignore[no-redef]
+        """Fallback mock when tensorboard is not installed."""
+        def __init__(self, *args, **kwargs):
+            pass
+        def add_scalar(self, *args, **kwargs):
+            pass
+        def add_hparams(self, *args, **kwargs):
+            pass
+        def close(self):
+            pass
+
 from tqdm import tqdm
 
 from bicyc_multiadapter.data.cil_dataset import CILDataManager, build_protocol
@@ -112,10 +129,12 @@ class DirectionOneExperiment:
         self.align_config = KeepLoRABiCycConfig(
             lambda_bi=float(align_cfg.lambda_bi),
             lambda_cyc=float(align_cfg.lambda_cyc),
+            lambda_iso=float(align_cfg.get("lambda_iso", 0.1)),
             lambda_min=float(align_cfg.lambda_min),
             lambda_max=float(align_cfg.lambda_max),
             distribution_temperature=float(align_cfg.distribution_temperature),
             use_adaptive_gate=bool(align_cfg.adaptive_gate),
+            channelwise_gate=bool(align_cfg.get("channelwise_gate", True)),
             use_distillation=bool(align_cfg.enabled),
             anti_collapse_weight=float(align_cfg.get("anti_collapse_weight", 0.0)),
             use_amp=bool(self.train_cfg.get("amp", False)),
@@ -497,14 +516,26 @@ class DirectionOneExperiment:
             return type(obj)(DirectionOneExperiment._to_cpu_state(item) for item in obj)
         return obj
 
+    @staticmethod
+    def _to_plain_config(obj):
+        if isinstance(obj, dict):
+            return {k: DirectionOneExperiment._to_plain_config(v) for k, v in obj.items()}
+        if isinstance(obj, list):
+            return [DirectionOneExperiment._to_plain_config(v) for v in obj]
+        return obj
+
     def _base_payload(self) -> dict:
         """Common checkpoint content; only compact statistics, never raw samples.
 
         All tensors are moved to CPU (``model`` / ``bicycle`` state dicts) before
         serialisation; ``memory`` and ``classifier`` are already CPU-only.
         """
+        if OmegaConf is not None and hasattr(OmegaConf, "to_container"):
+            config_payload = OmegaConf.to_container(self.cfg, resolve=True)
+        else:
+            config_payload = self._to_plain_config(self.cfg)
         return {
-            "config": OmegaConf.to_container(self.cfg, resolve=True),
+            "config": config_payload,
             "model": self._to_cpu_state(self.model.state_dict()),
             "memory": self.model.memory_state_dict(),
             "bicycle": self._to_cpu_state(self.bicycle.state_dict()),
@@ -725,12 +756,18 @@ class DirectionOneExperiment:
         # Repository root: <repo>/src/bicyc_multiadapter/engine/task_loop.py -> parents[3].
         repo_root = Path(__file__).resolve().parents[3]
         meta = collect_environment(repo_root)
-        meta["config"] = OmegaConf.to_container(self.cfg, resolve=True)
+        if OmegaConf is not None and hasattr(OmegaConf, "to_container"):
+            meta["config"] = OmegaConf.to_container(self.cfg, resolve=True)
+            yaml_content = OmegaConf.to_yaml(self.cfg)
+        else:
+            import yaml
+            meta["config"] = self._to_plain_config(self.cfg)
+            yaml_content = yaml.safe_dump(meta["config"])
         meta["checkpoint_version"] = CHECKPOINT_VERSION
         with open(self.run_meta_path, "w", encoding="utf-8") as handle:
             json.dump(meta, handle, indent=2, default=str)
         with open(self.output_dir / "config_resolved.yaml", "w", encoding="utf-8") as handle:
-            handle.write(OmegaConf.to_yaml(self.cfg))
+            handle.write(yaml_content)
 
     def _update_run_meta(self, summary: dict[str, float]) -> None:
         """Stamp the final summary into ``run_meta.json`` when the run finishes."""

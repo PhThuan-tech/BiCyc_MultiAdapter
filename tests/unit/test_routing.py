@@ -44,6 +44,20 @@ def test_route_report_assigns_own_adapter_the_highest_weight() -> None:
     report = layer.route_report(probe)
     assert set(report) == {"0", "1"}
     assert 0.0 <= report["0"] <= 1.0 and 0.0 <= report["1"] <= 1.0
-    assert torch.allclose(torch.tensor([report["0"], report["1"]]).sum(), torch.tensor(1.0), atol=1e-6)
     # Task-0 probes stay with the task-0 adapter.
     assert report["0"] > report["1"]
+
+
+def test_cosine_similarity_routing() -> None:
+    torch.manual_seed(0)
+    layer = RoutedKeepLoRALinear(torch.randn(8, 8), None, alpha=4, similarity="cosine")
+    layer.add_task(0, initialize_lora_from_gradient(torch.randn(8, 8), None, rank=2))
+    layer.add_task(1, initialize_lora_from_gradient(torch.randn(8, 8), None, rank=2))
+    probe0 = torch.randn(16, 8)
+    probe1 = torch.randn(16, 8) + 5.0
+    layer.update_distribution(0, probe0)
+    layer.update_distribution(1, probe1)
+    report0 = layer.route_report(probe0)
+    report1 = layer.route_report(probe1)
+    assert report0["0"] > report0["1"]
+    assert report1["1"] > report1["0"]

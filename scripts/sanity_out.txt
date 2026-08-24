@@ -1,67 +1,0 @@
-[2026-08-24 11:07:29] INFO    bicyc - ================= RUN CONFIG =================
-[2026-08-24 11:07:29] INFO    bicyc -   experiment              : sanity
-[2026-08-24 11:07:29] INFO    bicyc -   seed                    : 7
-[2026-08-24 11:07:29] INFO    bicyc -   device                  : cpu (CPU)
-[2026-08-24 11:07:29] INFO    bicyc -   backbone                : tiny@8
-[2026-08-24 11:07:29] INFO    bicyc -   batch_size              : 4
-[2026-08-24 11:07:29] INFO    bicyc -   epochs_per_task         : 1
-[2026-08-24 11:07:29] INFO    bicyc -   lr / weight_decay       : 0.001 / 0.0
-[2026-08-24 11:07:29] INFO    bicyc -   amp                     : False (float16)
-[2026-08-24 11:07:29] INFO    bicyc -   lora_rank / alpha       : 2 / 4
-[2026-08-24 11:07:29] INFO    bicyc -   targets                 : qkv,fc1
-[2026-08-24 11:07:29] INFO    bicyc -   alignment               : lambda_bi=1.00 lambda_cyc=1.00 lambda[0.10..1.00] adaptive_gate=True
-[2026-08-24 11:07:29] INFO    bicyc -   activation_cache_rows   : 32
-[2026-08-24 11:07:29] INFO    bicyc -   resume                  : False
-[2026-08-24 11:07:29] INFO    bicyc -   checkpoint_every_epochs : 0
-[2026-08-24 11:07:29] INFO    bicyc -   keep_task_checkpoints   : False
-[2026-08-24 11:07:29] INFO    bicyc -   data_root               : unused
-[2026-08-24 11:07:29] INFO    bicyc -   num_workers             : 0
-[2026-08-24 11:07:29] INFO    bicyc -   output_dir              : C:\Users\Asus\AppData\Local\Temp\tmpv2kfyd5c\run
-[2026-08-24 11:07:29] INFO    bicyc - ==============================================
-[2026-08-24 11:07:29] INFO    bicyc - [task 0] begin_task xong (gradient-SVD init)
-task 0 epoch 0:   0%|          | 0/3 [00:00<?, ?it/s]task 0 epoch 0:   0%|          | 0/3 [00:00<?, ?it/s, ce=3.0434, model=3.0434]task 0 epoch 0:   0%|          | 0/3 [00:00<?, ?it/s, ce=3.0879, model=3.0879]task 0 epoch 0:   0%|          | 0/3 [00:00<?, ?it/s, ce=3.2355, model=3.2355]                                                                              [2026-08-24 11:07:29] INFO    bicyc - [task 0 epoch 0] loss/ce=3.1222 loss/model=3.1222 phase_scale=1.0000 epoch_time_s=0.0152 samples_per_sec=790.6597 (0.0s, 790.7 samp/s)
-[2026-08-24 11:07:29] INFO    bicyc - [routing] eval task 0 -> 0-attn-qkv: own=1.000 max_other=0.000 | 0-mlp-fc1: own=1.000 max_other=0.000
-[2026-08-24 11:07:29] INFO    bicyc - [task 0] acc= 0.0833 | last_avg=0.0833 inc_avg=0.0833 forget=0.0000 | time=0.0s cum=0.0s eta=0.0s
-[2026-08-24 11:07:29] INFO    bicyc - [task 1] begin_task xong (gradient-SVD init)
-task 1 epoch 0:   0%|          | 0/3 [00:00<?, ?it/s]task 1 epoch 0:   0%|          | 0/3 [00:00<?, ?it/s, ce=3.1098, model=3.1189]task 1 epoch 0:   0%|          | 0/3 [00:00<?, ?it/s, ce=3.1020, model=3.1083]task 1 epoch 0:   0%|          | 0/3 [00:00<?, ?it/s, ce=3.0642, model=3.0862]                                                                              [2026-08-24 11:07:29] INFO    bicyc - [task 1 epoch 0] loss/ce=3.0920 loss/model=3.1045 loss/alignment=0.5110 loss/backward=0.1247 distribution/distance=0.0011 distribution/distance_per_dim=0.0001 distribution/lambda_adaptive=0.1001 phase_scale=1.0000 epoch_time_s=0.0219 samples_per_sec=547.9127 (0.0s, 547.9 samp/s)
-[2026-08-24 11:07:29] INFO    bicyc - [routing] eval task 0 -> 0-attn-qkv: own=0.490 max_other=0.510 | 0-mlp-fc1: own=0.486 max_other=0.514
-[2026-08-24 11:07:29] INFO    bicyc - [routing] eval task 1 -> 0-attn-qkv: own=0.548 max_other=0.452 | 0-mlp-fc1: own=0.513 max_other=0.487
-[2026-08-24 11:07:29] INFO    bicyc - [task 1] acc= 0.0000, 0.1667 | delta_cu=-0.0833 | last_avg=0.0833 inc_avg=0.0625 forget=0.0833 | time=0.1s cum=0.1s eta=0.0s
-[2026-08-24 11:07:29] INFO    bicyc - Run hoan tat. last_average=0.0833 incremental_average=0.0625 forgetting=0.0833 | tong=0.2s
-=== train_log.csv header ===
-task_id,epoch,loss/ce,loss/model,loss/backward,loss/alignment,distribution/distance,distribution/distance_per_dim,distribution/lambda_adaptive,phase_scale,samples_per_sec,epoch_time_s
-=== [routing] lines ===
-[2026-08-24 11:07:29] INFO    bicyc - [routing] eval task 0 -> 0-attn-qkv: own=1.000 max_other=0.000 | 0-mlp-fc1: own=1.000 max_other=0.000
-[2026-08-24 11:07:29] INFO    bicyc - [routing] eval task 0 -> 0-attn-qkv: own=0.490 max_other=0.510 | 0-mlp-fc1: own=0.486 max_other=0.514
-[2026-08-24 11:07:29] INFO    bicyc - [routing] eval task 1 -> 0-attn-qkv: own=0.548 max_other=0.452 | 0-mlp-fc1: own=0.513 max_other=0.487
-=== direct routing_probe ===
-model device: cpu
-layers: ['0-attn-qkv', '0-mlp-fc1']
-memory keys: ['0-attn-qkv', '0-mlp-fc1']
-report: {'0-attn-qkv': {'0': 0.48979246616363525, '1': 0.5102075338363647}, '0-mlp-fc1': {'0': 0.48586711287498474, '1': 0.5141328573226929}}
-layer=0-attn-qkv last_input=None
-layer=0-mlp-fc1 last_input=None
-Traceback (most recent call last):
-  File "C:\Users\Asus\AppData\Local\Programs\Python\Python312\Lib\shutil.py", line 633, in _rmtree_unsafe
-    os.unlink(fullname)
-PermissionError: [WinError 32] The process cannot access the file because it is being used by another process: 'C:\\Users\\Asus\\AppData\\Local\\Temp\\tmpv2kfyd5c\\run\\run.log'
-
-During handling of the above exception, another exception occurred:
-
-Traceback (most recent call last):
-  File "D:\MyProject\BiCyc_MultiAdapter\scripts\sanity_check_gate.py", line 80, in <module>
-    with tempfile.TemporaryDirectory() as tmp:
-  File "C:\Users\Asus\AppData\Local\Programs\Python\Python312\Lib\tempfile.py", line 946, in __exit__
-    self.cleanup()
-  File "C:\Users\Asus\AppData\Local\Programs\Python\Python312\Lib\tempfile.py", line 950, in cleanup
-    self._rmtree(self.name, ignore_errors=self._ignore_cleanup_errors)
-  File "C:\Users\Asus\AppData\Local\Programs\Python\Python312\Lib\tempfile.py", line 930, in _rmtree
-    _shutil.rmtree(name, onexc=onexc)
-  File "C:\Users\Asus\AppData\Local\Programs\Python\Python312\Lib\shutil.py", line 781, in rmtree
-    return _rmtree_unsafe(path, onexc)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\Asus\AppData\Local\Programs\Python\Python312\Lib\shutil.py", line 635, in _rmtree_unsafe
-    onexc(os.unlink, fullname, err)
-  File "C:\Users\Asus\AppData\Local\Programs\Python\Python312\Lib\tempfile.py", line 905, in onexc
-    _os.unlink(path)
-PermissionError: [WinError 32] The process cannot access the file because it is being used by another process: 'C:\\Users\\Asus\\AppData\\Local\\Temp\\tmpv2kfyd5c\\run\\run.log'

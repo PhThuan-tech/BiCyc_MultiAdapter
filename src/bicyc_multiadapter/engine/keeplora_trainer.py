@@ -20,10 +20,12 @@ from bicyc_multiadapter.models.alignment.distribution import adaptive_alignment_
 class KeepLoRABiCycConfig:
     lambda_bi: float = 8.0
     lambda_cyc: float = 2.0
+    lambda_iso: float = 0.1
     lambda_min: float = 0.4
     lambda_max: float = 1.0
     distribution_temperature: float = 1.0
     use_adaptive_gate: bool = True   # False pins lambda_t=1 (fixed-BiCyc ablation)
+    channelwise_gate: bool = True    # True uses per-dimension vector gate [feature_dim]
     use_distillation: bool = True    # False => KeepLoRA-only baseline (ablation 1)
     anti_collapse_weight: float = 0.0
     use_amp: bool = False            # mixed precision for both steps (CUDA only)
@@ -113,21 +115,28 @@ class KeepLoRATrainer:
             distance_per_dim = torch.tensor(0.0, device=device)
             backward_term = torch.tensor(0.0, device=device)
             if old_features is not None and self.config.use_distillation:
-                model_terms = bicyc_loss(self.bicycle, old_features, new_features)
-                backward_term = model_terms.backward
+                pred_old = self.bicycle.new_to_old(new_features)
+                diff_sq = (pred_old - old_features.detach()).square()
+                backward_term = diff_sq.mean()
                 if self.config.use_adaptive_gate:
                     # fp32 statistics: KL over 768 dims can overflow in half precision.
-                    # The raw symmetric KL is a sum over feature_dim, so it is normalised
-                    # per dimension inside the gate function to avoid saturation.
+                    # Per-dimension KL avoids saturation and supports fine-grained channel weighting.
                     adaptive, distance_per_dim, distance_raw = adaptive_alignment_weight(
                         old_features.float(),
                         new_features.float(),
                         self.config.lambda_min,
                         self.config.lambda_max,
                         self.config.distribution_temperature,
+                        channelwise=self.config.channelwise_gate,
                     )
                     adaptive = adaptive * phase_scale
-                model_loss = classification + adaptive * self.config.lambda_bi * backward_term
+                    if adaptive.ndim > 0:
+                        distill_loss = (diff_sq * adaptive).mean()
+                    else:
+                        distill_loss = backward_term * adaptive
+                else:
+                    distill_loss = backward_term
+                model_loss = classification + self.config.lambda_bi * distill_loss
                 if self.config.anti_collapse_weight > 0:
                     # Cholesky requires fp32 for numerical stability.
                     model_loss = model_loss + self.config.anti_collapse_weight * robust_anti_collapse_loss(
@@ -147,6 +156,7 @@ class KeepLoRATrainer:
             alignment_loss = alignment_terms.total(
                 self.config.lambda_bi * phase_scale,
                 self.config.lambda_cyc * phase_scale,
+                self.config.lambda_iso * phase_scale,
             )
         self.scaler_alignment.scale(alignment_loss).backward()
         self.scaler_alignment.step(self.alignment_optimizer)
@@ -158,5 +168,5 @@ class KeepLoRATrainer:
             "loss/backward": float(backward_term.detach()),
             "distribution/distance": float(distance_raw),
             "distribution/distance_per_dim": float(distance_per_dim),
-            "distribution/lambda_adaptive": float(adaptive),
+            "distribution/lambda_adaptive": float(adaptive.mean().detach() if isinstance(adaptive, Tensor) else adaptive),
         }

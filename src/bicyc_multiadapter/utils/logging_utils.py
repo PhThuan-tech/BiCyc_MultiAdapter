@@ -12,9 +12,12 @@ import platform
 import socket
 import subprocess
 import sys
-from pathlib import Path
+try:
+    import timm
+    _TIMM_VERSION = timm.__version__
+except ImportError:
+    _TIMM_VERSION = "not-installed"
 
-import timm
 import torch
 
 _LOG_FORMAT = "[%(asctime)s] %(levelname)-7s %(name)s - %(message)s"
@@ -60,7 +63,7 @@ def collect_environment(package_root: Path) -> dict:
         "torch_cuda_version": torch.version.cuda or "cpu",
         "cuda_available": torch.cuda.is_available(),
         "cuda_device_count": torch.cuda.device_count() if torch.cuda.is_available() else 0,
-        "timm": timm.__version__,
+        "timm": _TIMM_VERSION,
     }
     if torch.cuda.is_available():
         meta["cuda_device_name"] = torch.cuda.get_device_name(0)

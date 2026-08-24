@@ -27,8 +27,10 @@ train:
 alignment:
   enabled: true
   adaptive_gate: true
+  channelwise_gate: true
   lambda_bi: 8.0
   lambda_cyc: 2.0
+  lambda_iso: 0.1
   anti_collapse_weight: 0.0
   distribution_metric: symmetric_diagonal_gaussian_kl
   distribution_temperature: 1.0
@@ -41,9 +43,9 @@ keeplora:
   gradient_init_loss: classification_only
   merge_after_task: false
   adapter_strategy: routed_multi_adapter
-  router_similarity: l2
-  router_temperature: 1.0
-  router_top_k: 2
+  router_similarity: cosine
+  router_temperature: 0.1
+  router_top_k: 1
 classifier:
   covariance_mode: full_shared
   shrinkage: 0.0001

@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
-import timm
+try:
+    import timm
+except ImportError:
+    timm = None
 from torch import Tensor, nn
 
 from .frozen_encoder import FrozenFeatureEncoder
@@ -13,6 +16,8 @@ class TimmViTEncoder(FrozenFeatureEncoder):
 
     def __init__(self, model_name: str = "vit_base_patch16_224", pretrained: bool = True) -> None:
         super().__init__()
+        if timm is None:
+            raise ImportError("timm is required to instantiate TimmViTEncoder. Install with `pip install timm`.")
         # num_classes=0 makes timm return the pooled representation instead of logits.
         self.network = timm.create_model(model_name, pretrained=pretrained, num_classes=0)
         self.freeze()

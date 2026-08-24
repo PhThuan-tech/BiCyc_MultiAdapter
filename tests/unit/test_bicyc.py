@@ -41,3 +41,28 @@ def test_gate_is_driven_by_per_dimension_distance_not_the_raw_sum() -> None:
     assert float(weight) > 0.4
     # distance_per_dim is exactly the raw sum normalised by the feature dimension.
     assert torch.allclose(distance_raw / 768, distance_per_dim)
+
+
+def test_channelwise_adaptive_weight_returns_vector_gate() -> None:
+    torch.manual_seed(0)
+    old = torch.randn(32, 16)
+    new = old.clone()
+    new[:, :8] += 5.0  # large drift in first 8 channels, zero drift in last 8 channels
+    weight, distance_per_dim, distance_raw = adaptive_alignment_weight(
+        old, new, lambda_min=0.2, lambda_max=1.0, temperature=1.0, channelwise=True
+    )
+    assert weight.shape == (16,)
+    # Drifted channels receive high stabilizer weight; unchanged channels stay near lambda_min
+    assert weight[:8].mean() > weight[8:].mean()
+    assert (weight >= 0.2).all() and (weight <= 1.0).all()
+
+
+def test_isometric_loss_in_bicyc() -> None:
+    module = BidirectionalCycle(8)
+    old = torch.randn(10, 8)
+    new = torch.randn(10, 8)
+    terms = bicyc_loss(module, old, new)
+    assert terms.isometric is not None
+    assert terms.isometric.item() >= 0.0
+    total = terms.total(lambda_bi=1.0, lambda_cyc=1.0, lambda_iso=0.5)
+    assert total.item() > 0.0

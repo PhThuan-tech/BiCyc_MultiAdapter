@@ -45,6 +45,7 @@ class BiCycLoss:
     forward: Tensor
     cycle_new: Tensor
     cycle_old: Tensor
+    isometric: Tensor | None = None
 
     @property
     def bidirectional(self) -> Tensor:
@@ -54,8 +55,21 @@ class BiCycLoss:
     def cycle(self) -> Tensor:
         return self.cycle_new + self.cycle_old
 
-    def total(self, lambda_bi: float, lambda_cyc: float) -> Tensor:
-        return lambda_bi * self.bidirectional + lambda_cyc * self.cycle
+    def total(self, lambda_bi: float, lambda_cyc: float, lambda_iso: float = 0.0) -> Tensor:
+        loss = lambda_bi * self.bidirectional + lambda_cyc * self.cycle
+        if lambda_iso > 0 and self.isometric is not None:
+            loss = loss + lambda_iso * self.isometric
+        return loss
+
+
+def isometric_regularization_loss(source_features: Tensor, mapped_features: Tensor, epsilon: float = 1e-6) -> Tensor:
+    """Penalize norm distortion and direction collapse of affine transport map A."""
+    src_norm = torch.linalg.norm(source_features, dim=1).clamp_min(epsilon)
+    mapped_norm = torch.linalg.norm(mapped_features, dim=1).clamp_min(epsilon)
+    norm_loss = (mapped_norm / src_norm - 1.0).square().mean()
+    cosine = (source_features * mapped_features).sum(dim=1) / (src_norm * mapped_norm)
+    direction_loss = (1.0 - cosine).clamp_min(0.0).mean()
+    return norm_loss + direction_loss
 
 
 def bicyc_loss(module: BidirectionalCycle, old_features: Tensor, new_features: Tensor) -> BiCycLoss:
@@ -66,11 +80,15 @@ def bicyc_loss(module: BidirectionalCycle, old_features: Tensor, new_features: T
     """
     old = old_features.detach()
     new_target = new_features.detach()
+    pred_new = module.old_to_new(old)
+    pred_old = module.new_to_old(new_features)
+    iso_loss = isometric_regularization_loss(old, pred_new)
     return BiCycLoss(
-        backward=F.mse_loss(module.new_to_old(new_features), old),
-        forward=F.mse_loss(module.old_to_new(old), new_target),
+        backward=F.mse_loss(pred_old, old),
+        forward=F.mse_loss(pred_new, new_target),
         cycle_new=F.mse_loss(module.old_to_new(module.new_to_old(new_target)), new_target),
         cycle_old=F.mse_loss(module.new_to_old(module.old_to_new(old)), old),
+        isometric=iso_loss,
     )
 
 

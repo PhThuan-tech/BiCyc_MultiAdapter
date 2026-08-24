@@ -4,7 +4,30 @@ import json
 
 import pytest
 import torch
-from omegaconf import DictConfig
+try:
+    from omegaconf import DictConfig
+except ImportError:
+    class DictConfig(dict):
+        """Minimal fallback when omegaconf is not installed."""
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            for k, v in list(self.items()):
+                if isinstance(v, dict) and not isinstance(v, DictConfig):
+                    self[k] = DictConfig(v)
+
+        def __getattr__(self, name):
+            try:
+                val = self[name]
+                if isinstance(val, dict) and not isinstance(val, DictConfig):
+                    val = DictConfig(val)
+                    self[name] = val
+                return val
+            except KeyError:
+                raise AttributeError(f"DictConfig has no attribute {name}")
+
+        def __setattr__(self, name, value):
+            self[name] = value
+
 from torch import nn
 
 from bicyc_multiadapter.engine import task_loop as tl

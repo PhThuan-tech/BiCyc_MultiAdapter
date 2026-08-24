@@ -11,6 +11,7 @@ import math
 
 import torch
 from torch import Tensor, nn
+from torch.nn import functional as F
 
 from .keeplora import FrozenAResidualLoRA, KeepLoRAFactors
 
@@ -20,8 +21,8 @@ class PresentativeFeatureRouter(nn.Module):
 
     def __init__(self, feature_dim: int, similarity: str = "l2", temperature: float = 1.0) -> None:
         super().__init__()
-        if similarity not in {"l2", "dot"} or temperature <= 0:
-            raise ValueError("similarity must be 'l2' or 'dot'; temperature must be positive.")
+        if similarity not in {"l2", "dot", "cosine"} or temperature <= 0:
+            raise ValueError("similarity must be 'l2', 'dot', or 'cosine'; temperature must be positive.")
         self.feature_dim, self.similarity, self.temperature = feature_dim, similarity, temperature
         self.means = nn.ParameterDict()  # requires_grad=False statistical state, checkpointed with module
         self.counts = nn.ParameterDict()
@@ -50,6 +51,10 @@ class PresentativeFeatureRouter(nn.Module):
         prototypes = torch.stack([self.means[key] for key in task_ids])
         if self.similarity == "l2":
             scores = -torch.cdist(frozen_base_features, prototypes)
+        elif self.similarity == "cosine":
+            feat_norm = F.normalize(frozen_base_features, p=2, dim=-1, eps=1e-6)
+            proto_norm = F.normalize(prototypes, p=2, dim=-1, eps=1e-6)
+            scores = feat_norm @ proto_norm.T
         else:
             scores = frozen_base_features @ prototypes.T / math.sqrt(self.feature_dim)
         if top_k is not None and 0 < top_k < len(task_ids):

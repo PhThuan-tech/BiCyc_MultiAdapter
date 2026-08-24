@@ -25,13 +25,13 @@ Vòng đời mỗi task `t` trong `DirectionOneExperiment.run()`:
    `G_t` từng layer → khởi tạo `(A_t, B_t)` bằng SVD residual trên basis bảo vệ
    `Q = orth([W_p, M_{t-1}])`; đồng thời gắn forward hook thu input activation (cache CPU, có cap).
 3. **Train epochs** — `KeepLoRATrainer.train_batch` gồm 2 bước tách biệt:
-   - *Model step*: `CE + λ_t·λ_bi·‖D(z_new) − sg(z_old)‖²` cập nhật `B_t` + head;
-     `λ_t = λ_min + (λ_max−λ_min)·exp(−δ_t/τ)` với `δ_t` là symmetric diagonal Gaussian-KL
-     (tắt bằng `alignment.adaptive_gate=false` để cố định `λ_t=1`).
-   - *Alignment step*: toàn bộ `L_BiCyc = λ_bi·L_bi + λ_cyc·L_cyc` trên feature đã detach,
-     chỉ học map A/D, không bao giờ truyền gradient về `B_t`.
+   - *Model step*: `CE + λ_bi·L_distill` cập nhật `B_t` + head;
+     `L_distill = (1/B) ∑_b ∑_i λ_{t,i}·(D(z_new)_i − z_old_i)²` với `λ_{t,i}` là vector trọng số
+     thích ứng theo từng chiều đặc trưng tính từ đối xứng Gaussian-KL (bật `channelwise_gate=true`).
+   - *Alignment step*: toàn bộ `L_BiCyc = λ_bi·L_bi + λ_cyc·L_cyc + λ_iso·L_iso` trên feature đã detach,
+     chỉ học map A/D và ràng buộc bảo toàn chuẩn/hướng Isometric, không bao giờ truyền gradient về `B_t`.
    - Sau mỗi batch gọi `update_routing_statistics` để cập nhật online mean PFD
-     `D_t^l = E[W^l h^l(x)]`.
+     `D_t^l = E[W^l h^l(x)]` (định tuyến `similarity: cosine`).
 4. **Consolidation** — vận chuyển thống kê class cũ qua map A (`μ'=Aμ`, `Σ'=AΣAᵀ`) rồi fit
    thống kê mới của task hiện tại cho Gaussian classifier.
 5. **`end_task`** — cập nhật compact feature memory `M_t = orth([M_{t-1}, U_residual])`
