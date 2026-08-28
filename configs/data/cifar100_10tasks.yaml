@@ -4,5 +4,5 @@ num_classes: 100
 initial_classes: 10
 increment: 10
 class_order_seed: 1993
-num_workers: 4
+num_workers: 2
 exemplar_free: true

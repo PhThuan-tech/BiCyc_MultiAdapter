@@ -6,7 +6,7 @@ seed: 2024
 trainer: keeplora
 resume: true                 # auto-continue from checkpoints inside output_dir
 checkpoint_every_epochs: 1   # cloud sessions get cut: save every epoch (~350MB, overwritten)
-keep_task_checkpoints: false # true: keep checkpoint_task_<t>.pt after each task (~350MB each)
+keep_task_checkpoints: true  # true: giữ riêng checkpoint_task_<t>.pt sau mỗi task (~350MB each)
 defaults:
   - /model: keeplora
   - /data: cifar100_10tasks

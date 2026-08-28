@@ -2,9 +2,9 @@ name: keeplora_bicyc
 method: keeplora_bicyc
 seed: 2024
 trainer: keeplora
-resume: true                 # tá»± Ä‘á»™ng tiáº¿p tá»¥c tá»« checkpoint trong output_dir náº¿u cÃ³
-checkpoint_every_epochs: 0   # >0: lÆ°u snapshot giá»¯a task má»—i N epoch (khuyáº¿n nghá»‹ trÃªn cloud)
-keep_task_checkpoints: false # true: giữ riêng checkpoint_task_<t>.pt sau mỗi task (tốn ~350MB/task)
+resume: true                 # tự động tiếp tục từ checkpoint trong output_dir nếu có
+checkpoint_every_epochs: 5   # >0: lưu snapshot giữa task mỗi N epoch (khuyến nghị trên cloud/local)
+keep_task_checkpoints: true  # true: giữ riêng checkpoint_task_<t>.pt sau mỗi task (~350MB/task)
 defaults:
   - /model: keeplora
   - /data: cifar100_10tasks
