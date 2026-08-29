@@ -742,7 +742,7 @@ class DirectionOneExperiment:
             return False
 
     def _write_running_metrics(self, summary: dict[str, float] | None = None) -> None:
-        """Rewrite metrics.json + accuracy CSV after every finished task."""
+        """Rewrite metrics.json + accuracy CSV + summary_report.txt after every finished task."""
         if summary is None:
             summary = summarize_accuracy_matrix(self.accuracy_matrix)
         with open(self.output_dir / "metrics.json", "w", encoding="utf-8") as handle:
@@ -750,6 +750,57 @@ class DirectionOneExperiment:
         with open(self.output_dir / "accuracy_matrix.csv", "w", newline="", encoding="utf-8") as handle:
             writer = csv.writer(handle)
             writer.writerows(self.accuracy_matrix)
+        self._write_summary_report(summary)
+
+    def _write_summary_report(self, summary: dict[str, float]) -> None:
+        """Format an easy-to-read text summary report with the full accuracy matrix."""
+        report_path = self.output_dir / "summary_report.txt"
+        experiment_name = str(self.cfg.experiment.name)
+        seed = str(self.cfg.experiment.seed)
+
+        matrix = np.array(self.accuracy_matrix, dtype=float)
+        num_tasks = matrix.shape[0] if matrix.ndim == 2 else len(self.accuracy_matrix)
+
+        lines = [
+            "=" * 82,
+            "                   BICYC MULTI-ADAPTER EXPERIMENT REPORT",
+            "=" * 82,
+            f"Experiment  : {experiment_name}",
+            f"Seed        : {seed}",
+            f"Device      : {self.device}",
+            f"Output Dir  : {self.output_dir}",
+            f"Timestamp   : {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
+            "-" * 82,
+            "CIL CORE METRICS SUMMARY:",
+            f"  * Final Task Average Accuracy (A_B)       : {summary.get('last_average', 0.0) * 100:.2f}% ({summary.get('last_average', 0.0):.4f})",
+            f"  * Cumulative Incremental Average (A_bar)  : {summary.get('incremental_average', 0.0) * 100:.2f}% ({summary.get('incremental_average', 0.0):.4f})",
+            f"  * Catastrophic Forgetting (F)             : {summary.get('forgetting', 0.0):.4f}",
+            "-" * 82,
+            "ACCURACY MATRIX (%):",
+            "(Row i = accuracy across seen tasks after training task i)",
+            "-" * 82,
+        ]
+
+        if num_tasks > 0:
+            header_cols = " ".join(f"T{j:<5}" for j in range(num_tasks))
+            header = f"Task | {header_cols} | Last_Avg"
+            lines.append(header)
+            lines.append("-" * len(header))
+            for i in range(num_tasks):
+                row = matrix[i] if matrix.ndim == 2 else self.accuracy_matrix[i]
+                row_vals = []
+                for j in range(num_tasks):
+                    if j < len(row) and not np.isnan(row[j]):
+                        row_vals.append(f"{row[j] * 100:5.2f}%")
+                    else:
+                        row_vals.append("   -  ")
+                valid_accs = [row[j] for j in range(min(i + 1, len(row))) if not np.isnan(row[j])]
+                row_avg = np.mean(valid_accs) * 100 if valid_accs else 0.0
+                lines.append(f"T{i:02d}  | " + " ".join(row_vals) + f" | {row_avg:5.2f}%")
+
+        lines.append("=" * 82)
+        with open(report_path, "w", encoding="utf-8") as handle:
+            handle.write("\n".join(lines) + "\n")
 
     def _write_run_meta(self) -> None:
         """Write ``run_meta.json`` (env + git + resolved config) + ``config_resolved.yaml``."""

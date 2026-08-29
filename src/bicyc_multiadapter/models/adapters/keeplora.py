@@ -21,6 +21,38 @@ class KeepLoRAFactors:
     projected_gradient: Tensor
 
 
+def robust_svd(matrix: Tensor, full_matrices: bool = False) -> tuple[Tensor, Tensor, Tensor]:
+    """Numerically stable SVD with automatic Gram/eigh fallback for ill-conditioned matrices."""
+    matrix = torch.nan_to_num(matrix, nan=0.0, posinf=1.0, neginf=-1.0)
+    try:
+        return torch.linalg.svd(matrix, full_matrices=full_matrices)
+    except Exception:
+        pass
+
+    m, n = matrix.shape
+    device, dtype = matrix.device, matrix.dtype
+    if m <= n:
+        gram = matrix @ matrix.T
+        jitter = 1e-7 * torch.eye(m, device=device, dtype=dtype)
+        evals, evecs = torch.linalg.eigh(gram + jitter)
+        evals = torch.flip(evals, dims=[0])
+        U = torch.flip(evecs, dims=[1])
+        S = torch.sqrt(torch.clamp(evals, min=0.0))
+        inv_S = torch.where(S > 1e-8, 1.0 / S, torch.zeros_like(S))
+        Vh = inv_S.unsqueeze(1) * (U.T @ matrix)
+        return U, S, Vh
+    else:
+        gram = matrix.T @ matrix
+        jitter = 1e-7 * torch.eye(n, device=device, dtype=dtype)
+        evals, evecs = torch.linalg.eigh(gram + jitter)
+        evals = torch.flip(evals, dims=[0])
+        V = torch.flip(evecs, dims=[1])
+        S = torch.sqrt(torch.clamp(evals, min=0.0))
+        inv_S = torch.where(S > 1e-8, 1.0 / S, torch.zeros_like(S))
+        U = (matrix @ V) * inv_S.unsqueeze(0)
+        return U, S, V.T
+
+
 def _energy_rank(singular_values: Tensor, energy: float) -> int:
     if not 0 < energy <= 1:
         raise ValueError("energy must be in (0, 1].")
@@ -30,7 +62,7 @@ def _energy_rank(singular_values: Tensor, energy: float) -> int:
 
 def principal_weight_subspace(weight: Tensor, energy: float) -> Tensor:
     """Return W_p, the weight principal basis in R^[d_in,p]."""
-    U, S, _ = torch.linalg.svd(weight, full_matrices=False)
+    U, S, _ = robust_svd(weight, full_matrices=False)
     return U[:, : _energy_rank(S, energy)]
 
 
@@ -65,7 +97,7 @@ def update_feature_subspace(
         raise ValueError("Expected input features [batch, d_in] matching weight basis.")
     protected = orthonormal_union(weight_basis, historical_basis)
     residual_inputs = residual_gradient(input_features.detach().T, protected)
-    U, S, _ = torch.linalg.svd(residual_inputs, full_matrices=False)
+    U, S, _ = robust_svd(residual_inputs, full_matrices=False)
     new_basis = U[:, : _energy_rank(S, energy)]
     return orthonormal_union(historical_basis, new_basis)  # type: ignore[return-value]
 
@@ -81,7 +113,7 @@ def initialize_lora_from_gradient(
     if rank <= 0:
         raise ValueError("rank must be positive.")
     projected = residual_gradient(gradient, protected_basis)
-    U, S, Vh = torch.linalg.svd(projected, full_matrices=False)
+    U, S, Vh = robust_svd(projected, full_matrices=False)
     effective_rank = min(rank, S.numel())
     return KeepLoRAFactors(
         A=U[:, :effective_rank],
