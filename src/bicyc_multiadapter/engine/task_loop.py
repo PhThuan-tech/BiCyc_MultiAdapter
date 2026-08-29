@@ -664,6 +664,23 @@ class DirectionOneExperiment:
             self._apply_state(payload, with_snapshot=True)
             self.log.info("Resume tu checkpoint_boundary.pt (task %s)", payload["progress"]["task_id"])
             return int(payload["progress"]["task_id"]) + 1, 0, False
+
+        # Fallback: scan for any checkpoint_task_<t>.pt in output_dir
+        task_checkpoints = sorted(self.output_dir.glob("checkpoint_task_*.pt"))
+        if task_checkpoints:
+            latest_cp = task_checkpoints[-1]
+            payload = torch.load(latest_cp, map_location="cpu", weights_only=False)
+            self._validate_payload(payload)
+            self._apply_state(payload, with_snapshot=True)
+            finished_task_id = int(payload.get("progress", {}).get("task_id", 0))
+            self.log.info(
+                "Resume tu %s (task %s da hoan thanh -> bat dau task %s)",
+                latest_cp.name,
+                finished_task_id,
+                finished_task_id + 1,
+            )
+            return finished_task_id + 1, 0, False
+
         return 0, 0, False
 
     def _validate_payload(self, payload: dict) -> None:
@@ -758,8 +775,7 @@ class DirectionOneExperiment:
         experiment_name = str(self.cfg.experiment.name)
         seed = str(self.cfg.experiment.seed)
 
-        matrix = np.array(self.accuracy_matrix, dtype=float)
-        num_tasks = matrix.shape[0] if matrix.ndim == 2 else len(self.accuracy_matrix)
+        num_tasks = len(self.accuracy_matrix)
 
         lines = [
             "=" * 82,
@@ -787,7 +803,7 @@ class DirectionOneExperiment:
             lines.append(header)
             lines.append("-" * len(header))
             for i in range(num_tasks):
-                row = matrix[i] if matrix.ndim == 2 else self.accuracy_matrix[i]
+                row = self.accuracy_matrix[i]
                 row_vals = []
                 for j in range(num_tasks):
                     if j < len(row) and not np.isnan(row[j]):
@@ -795,7 +811,7 @@ class DirectionOneExperiment:
                     else:
                         row_vals.append("   -  ")
                 valid_accs = [row[j] for j in range(min(i + 1, len(row))) if not np.isnan(row[j])]
-                row_avg = np.mean(valid_accs) * 100 if valid_accs else 0.0
+                row_avg = float(np.mean(valid_accs) * 100) if valid_accs else 0.0
                 lines.append(f"T{i:02d}  | " + " ".join(row_vals) + f" | {row_avg:5.2f}%")
 
         lines.append("=" * 82)
