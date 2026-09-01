@@ -82,9 +82,12 @@ class CILDataManager:
         num_workers: int,
         base_seed: int,
         pin_memory: bool = False,
+        eval_batch_size: int | None = None,
     ) -> None:
         self.protocol = protocol
-        self.batch_size, self.num_workers, self.base_seed = batch_size, num_workers, base_seed
+        self.batch_size = batch_size
+        self.eval_batch_size = int(eval_batch_size) if eval_batch_size is not None else batch_size
+        self.num_workers, self.base_seed = num_workers, base_seed
         self.pin_memory = pin_memory
         self.train_transform, self.test_transform = build_transforms(image_size)
         # download=True keeps data under ``root`` (host volume); nothing goes into git/image.
@@ -96,7 +99,7 @@ class CILDataManager:
         train_view = _TaskView(self.train_split, spec.class_ids, self.train_transform)
         test_view = _TaskView(self.test_split, spec.class_ids, self.test_transform)
         generator = torch.Generator().manual_seed(self.base_seed + spec.task_id)
-        loader_options = dict(
+        train_options = dict(
             batch_size=self.batch_size,
             num_workers=self.num_workers,
             pin_memory=self.pin_memory,
@@ -104,6 +107,14 @@ class CILDataManager:
             persistent_workers=self.num_workers > 0,
             prefetch_factor=2 if self.num_workers > 0 else None,
         )
-        train = DataLoader(train_view, shuffle=True, generator=generator, **loader_options)
-        test = DataLoader(test_view, shuffle=False, **loader_options)
+        test_options = dict(
+            batch_size=self.eval_batch_size,
+            num_workers=self.num_workers,
+            pin_memory=self.pin_memory,
+            persistent_workers=self.num_workers > 0,
+            prefetch_factor=2 if self.num_workers > 0 else None,
+        )
+        train = DataLoader(train_view, shuffle=True, generator=generator, **train_options)
+        test = DataLoader(test_view, shuffle=False, **test_options)
         return train, test
+
