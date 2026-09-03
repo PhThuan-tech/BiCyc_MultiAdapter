@@ -44,3 +44,17 @@ def test_task_checkpoint_manager_lifecycle(tmp_path) -> None:
     loaded = manager.load_checkpoint(saved_1)
     assert loaded["task_id"] == 1
     assert torch.allclose(loaded["weight"], torch.tensor([3.0, 4.0]))
+
+    # Test cleanup older checkpoints when task 2 arrives
+    payload_2 = {"task_id": 2, "progress": {"task_id": 2, "status": "task_done"}}
+    saved_2 = manager.save_task_checkpoint(2, payload_2)
+    deleted = manager.cleanup_old_checkpoints(2)
+    assert len(deleted) == 2  # task 0 and task 1 deleted
+    assert not saved_0.exists()
+    assert not saved_1.exists()
+    assert saved_2.exists()
+
+    # Verify latest checkpoint is still task 2
+    next_task, latest_path = manager.find_latest_checkpoint()
+    assert next_task == 3
+    assert latest_path == saved_2

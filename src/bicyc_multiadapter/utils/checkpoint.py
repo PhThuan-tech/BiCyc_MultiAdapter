@@ -95,6 +95,18 @@ class TaskCheckpointManager:
         results.sort(key=lambda item: item[0])
         return results
 
+    def cleanup_old_checkpoints(self, current_task_id: int) -> list[Path]:
+        """Remove task checkpoints strictly older than current_task_id to save SSD space."""
+        removed: list[Path] = []
+        for task_id, file_path in self.list_task_checkpoints():
+            if task_id < current_task_id and file_path.exists():
+                try:
+                    file_path.unlink()
+                    removed.append(file_path)
+                except OSError:
+                    pass
+        return removed
+
     @staticmethod
     def load_checkpoint(path: str | Path) -> dict[str, Any]:
         """Load checkpoint safely to CPU."""

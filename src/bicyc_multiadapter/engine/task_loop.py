@@ -602,12 +602,25 @@ class DirectionOneExperiment:
         payload["progress"] = {"status": "task_done", "task_id": finished_task}
 
         # 1. Save canonical task-by-task checkpoint: task_XX.pt
-        self.checkpoint_manager.save_task_checkpoint(finished_task, payload)
-        self.log.info("Da luu task_%02d.pt", finished_task)
+        target = self.checkpoint_manager.save_task_checkpoint(finished_task, payload)
+        self.log.info("Da luu %s", target.name)
 
-        # 2. Save rolling boundary & last checkpoint for compatibility
-        self._atomic_save(payload, self.boundary_path)
-        self._atomic_save(payload, self.last_path)
+        if not self.keep_task_checkpoints:
+            # Xoa cac task checkpoint cu de tiet kiem SSD (chi giu lai task vua xong)
+            deleted = self.checkpoint_manager.cleanup_old_checkpoints(finished_task)
+            for d in deleted:
+                self.log.info("Da xoa checkpoint cu de tiet kiem SSD: %s", d.name)
+            # Xoa ca boundary va last de tiet kiem toi da bo nho SSD tren Kaggle
+            for old_file in (self.boundary_path, self.last_path):
+                if old_file.exists():
+                    try:
+                        old_file.unlink()
+                    except OSError:
+                        pass
+        else:
+            # 2. Save rolling boundary & last checkpoint for compatibility
+            self._atomic_save(payload, self.boundary_path)
+            self._atomic_save(payload, self.last_path)
 
     def _save_live_checkpoint(
         self,
@@ -666,10 +679,19 @@ class DirectionOneExperiment:
         # 1. Check if an interrupted mid-task live checkpoint exists
         if self.live_path.exists():
             # Mid-task resume needs the previous boundary as the frozen teacher.
+            boundary_file: Path | None = None
             if self.boundary_path.exists():
-                boundary = torch.load(self.boundary_path, map_location="cpu", weights_only=False)
+                boundary_file = self.boundary_path
+            else:
+                _, latest_task_cp = self.checkpoint_manager.find_latest_checkpoint()
+                if latest_task_cp is not None and latest_task_cp.exists():
+                    boundary_file = latest_task_cp
+
+            if boundary_file is not None and boundary_file.exists():
+                boundary = torch.load(boundary_file, map_location="cpu", weights_only=False)
                 self._validate_payload(boundary)
                 self._apply_state(boundary, with_snapshot=True)
+                self.log.info("Da phuc hoi teacher snapshot tu %s", boundary_file.name)
             payload = torch.load(self.live_path, map_location="cpu", weights_only=False)
             self._validate_payload(payload)
             self._apply_state(payload, with_snapshot=False, with_optimizers=True)
@@ -865,7 +887,8 @@ class DirectionOneExperiment:
 
     def _save_outputs(self, summary: dict[str, float]) -> None:
         """Final checkpoint (bases/factors/classifier only), metrics JSON and accuracy CSV."""
-        torch.save(self._base_payload(), self.output_dir / "checkpoint_last.pt")
+        if self.keep_task_checkpoints:
+            torch.save(self._base_payload(), self.output_dir / "checkpoint_last.pt")
         self._write_running_metrics(summary)
         self.writer.add_hparams(
             {"experiment": str(self.cfg.experiment.name), "seed": str(self.cfg.experiment.seed)},
