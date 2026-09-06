@@ -205,3 +205,28 @@ def test_interrupted_run_resumes_from_live_checkpoint(monkeypatch, tmp_path) -> 
     assert json.loads(history_lines[-1])["task_id"] == 1
     assert not resumed.live_path.exists()  # superseded by the final boundary
     assert 0.0 <= summary["last_average"] <= 1.0
+
+
+def test_cleanup_old_task_checkpoints_when_disabled(monkeypatch, tmp_path) -> None:
+    cfg = build_cfg(tmp_path, epochs_per_task=1, checkpoint_every=0)
+    cfg.experiment.keep_task_checkpoints = False
+
+    monkeypatch.setattr(tl, "TimmViTEncoder", lambda name, pretrained=True: TinyEncoder())
+    monkeypatch.setattr(tl, "CILDataManager", FakeDataManager)
+
+    experiment = tl.DirectionOneExperiment(cfg)
+    summary = experiment.run()
+    out_dir = experiment.output_dir
+
+    # Only task_01.pt should exist (task_00.pt was cleaned up)
+    assert not (out_dir / "task_00.pt").exists()
+    assert (out_dir / "task_01.pt").exists()
+    # Boundary and last are also cleaned to save max disk space
+    assert not (out_dir / "checkpoint_boundary.pt").exists()
+    assert not (out_dir / "checkpoint_last.pt").exists()
+
+    # Verify resume can still discover the latest task from task_01.pt
+    resumed = tl.DirectionOneExperiment(cfg)
+    start_task, start_epoch, resumed_live = resumed._maybe_resume()
+    assert (start_task, start_epoch, resumed_live) == (2, 0, False)
+    assert resumed.old_model is not None

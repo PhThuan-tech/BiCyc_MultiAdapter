@@ -57,7 +57,9 @@ from bicyc_multiadapter.models.alignment.bicyc import BidirectionalCycle
 from bicyc_multiadapter.models.backbones.vit_timm import TimmViTEncoder
 from bicyc_multiadapter.models.classifier import GaussianCILClassifier
 from bicyc_multiadapter.models.keeplora_model import DEFAULT_TARGET_PATTERNS, KeepLoRACILModel
+from bicyc_multiadapter.utils.checkpoint import TaskCheckpointManager
 from bicyc_multiadapter.utils.logging_utils import collect_environment, setup_logging
+
 from bicyc_multiadapter.utils.reproducibility import enable_tf32, seed_everything
 
 # Payload schema version; bump whenever checkpoint fields change incompatibly.
@@ -98,15 +100,23 @@ class DirectionOneExperiment:
         )
         keep_cfg, align_cfg = experiment.keeplora, experiment.alignment
         self.train_cfg = experiment.train
-        self.data_manager = CILDataManager(
-            root=str(data_cfg.root),
-            protocol=self.protocol,
-            image_size=int(experiment.image_size),
-            batch_size=int(self.train_cfg.batch_size),
-            num_workers=int(data_cfg.num_workers),
-            base_seed=int(experiment.seed),
-            pin_memory=self.device == "cuda",
-        )
+        eval_batch_size = int(experiment.get("eval_batch_size", max(int(self.train_cfg.batch_size) * 2, 128)))
+
+        is_cuda = self.device == "cuda" or (isinstance(self.device, str) and self.device.startswith("cuda")) or (isinstance(self.device, torch.device) and self.device.type == "cuda")
+        data_manager_kwargs = {
+            "root": str(data_cfg.root),
+            "protocol": self.protocol,
+            "image_size": int(experiment.image_size),
+            "batch_size": int(self.train_cfg.batch_size),
+            "num_workers": int(data_cfg.num_workers),
+            "base_seed": int(experiment.seed),
+            "pin_memory": bool(is_cuda),
+        }
+        try:
+            self.data_manager = CILDataManager(eval_batch_size=eval_batch_size, **data_manager_kwargs)
+        except TypeError:
+            self.data_manager = CILDataManager(**data_manager_kwargs)
+
 
         # Frozen backbone + patched KeepLoRA layers + growing linear head.
         self.model = KeepLoRACILModel(
@@ -151,15 +161,18 @@ class DirectionOneExperiment:
         )
         self.old_model: KeepLoRACILModel | None = None
         self.accuracy_matrix: list[list[float]] = []
-        # Rolling checkpoints + logs for resuming interrupted runs (cloud sessions).
+        # Task-by-task checkpoint manager + rolling fallback paths
+        self.checkpoint_manager = TaskCheckpointManager(self.output_dir)
         self.boundary_path = self.output_dir / "checkpoint_boundary.pt"
+        self.last_path = self.output_dir / "checkpoint_last.pt"
         self.live_path = self.output_dir / "checkpoint_live.pt"
         self.history_path = self.output_dir / "history.jsonl"
         self.train_log_path = self.output_dir / "train_log.csv"
         self.resume_enabled = bool(experiment.get("resume", True))
         self.checkpoint_every_epochs = int(experiment.get("checkpoint_every_epochs", 0))
-        self.keep_task_checkpoints = bool(experiment.get("keep_task_checkpoints", False))
+        self.keep_task_checkpoints = bool(experiment.get("keep_task_checkpoints", True))
         self._pending_optimizer_states: dict | None = None
+
 
         # Structured logging + run metadata (environment, config, git revision).
         self.log = setup_logging("bicyc", self.output_dir)
@@ -451,10 +464,13 @@ class DirectionOneExperiment:
         if task_id > 0:
             self.classifier.transport(self.bicycle.old_to_new)  # mu'=A(mu), Sigma'=A(Sigma)A^T
         self.classifier.fit_task(features, labels)
+        del features, labels
+        if torch.cuda.is_available() and self.device != "cpu":
+            torch.cuda.empty_cache()
         self.model.end_task(task_id)
         self.old_model = self.model.snapshot()  # immutable teacher for the next task
 
-    @torch.no_grad()
+    @torch.inference_mode()
     def _collect_features(self, loader) -> tuple[torch.Tensor, torch.Tensor]:
         """Pooled backbone features for every sample; caller controls train/eval mode."""
         features, labels = [], []
@@ -462,9 +478,9 @@ class DirectionOneExperiment:
             _, batch_features = self.model(images.to(self.device, non_blocking=True))
             features.append(batch_features.cpu())
             labels.append(targets)
-        return torch.cat(features), torch.cat(labels)
+        return torch.cat(features, dim=0), torch.cat(labels, dim=0)
 
-    @torch.no_grad()
+    @torch.inference_mode()
     def _evaluate_upto(self, finished_task: int) -> list[float]:
         """CIL accuracy on all seen tasks with the Gaussian classifier (no task-id hint)."""
         self.model.eval()
@@ -475,11 +491,15 @@ class DirectionOneExperiment:
             predictions = self.classifier.predict(features.to(self.device)).cpu()
             row.append(float((predictions == labels).float().mean()))
             self._log_routing_probe(spec.task_id, test_loader)
+            del features, labels, predictions
+        if torch.cuda.is_available() and self.device != "cpu":
+            torch.cuda.empty_cache()
         self.accuracy_matrix.append(row)
         return row
 
-    @torch.no_grad()
+    @torch.inference_mode()
     def _log_routing_probe(self, eval_task_id: int, test_loader) -> None:
+
         """Report the mean router weight on each adapter for one probe batch.
 
         The routed multi-adapter keeps frozen per-task factors and selects them by
@@ -577,18 +597,30 @@ class DirectionOneExperiment:
         tmp.replace(target)
 
     def _save_boundary_checkpoint(self, finished_task: int) -> None:
-        """Rolling snapshot after a finished task; replaces any older boundary.
-
-        With ``experiment.keep_task_checkpoints=true`` a separate
-        ``checkpoint_task_<t>.pt`` is also kept for every finished task.
-        """
+        """Persist task completion checkpoint task_<t>.pt and rolling boundary."""
         payload = self._base_payload()
         payload["progress"] = {"status": "task_done", "task_id": finished_task}
-        self._atomic_save(payload, self.boundary_path)
-        if self.keep_task_checkpoints:
-            task_path = self.output_dir / f"checkpoint_task_{finished_task:02d}.pt"
-            self._atomic_save(payload, task_path)
-            self.log.info("Da luu checkpoint_task_%02d.pt", finished_task)
+
+        # 1. Save canonical task-by-task checkpoint: task_XX.pt
+        target = self.checkpoint_manager.save_task_checkpoint(finished_task, payload)
+        self.log.info("Da luu %s", target.name)
+
+        if not self.keep_task_checkpoints:
+            # Xoa cac task checkpoint cu de tiet kiem SSD (chi giu lai task vua xong)
+            deleted = self.checkpoint_manager.cleanup_old_checkpoints(finished_task)
+            for d in deleted:
+                self.log.info("Da xoa checkpoint cu de tiet kiem SSD: %s", d.name)
+            # Xoa ca boundary va last de tiet kiem toi da bo nho SSD tren Kaggle
+            for old_file in (self.boundary_path, self.last_path):
+                if old_file.exists():
+                    try:
+                        old_file.unlink()
+                    except OSError:
+                        pass
+        else:
+            # 2. Save rolling boundary & last checkpoint for compatibility
+            self._atomic_save(payload, self.boundary_path)
+            self._atomic_save(payload, self.last_path)
 
     def _save_live_checkpoint(
         self,
@@ -613,6 +645,7 @@ class DirectionOneExperiment:
         payload["alignment_optimizer"] = self._to_cpu_state(alignment_optimizer.state_dict())
         payload["rng"] = self._to_cpu_state(self._rng_state())
         self._atomic_save(payload, self.live_path)
+
     def _apply_state(self, payload: dict, with_snapshot: bool, with_optimizers: bool = False) -> None:
         """Restore one checkpoint payload into the live experiment objects."""
         if [int(c) for c in payload["class_order"]] != [int(c) for c in self.class_order]:
@@ -642,12 +675,23 @@ class DirectionOneExperiment:
         """Return ``(task_id, first_epoch, resumed_from_live_snapshot)``."""
         if not self.resume_enabled:
             return 0, 0, False
+
+        # 1. Check if an interrupted mid-task live checkpoint exists
         if self.live_path.exists():
             # Mid-task resume needs the previous boundary as the frozen teacher.
+            boundary_file: Path | None = None
             if self.boundary_path.exists():
-                boundary = torch.load(self.boundary_path, map_location="cpu", weights_only=False)
+                boundary_file = self.boundary_path
+            else:
+                _, latest_task_cp = self.checkpoint_manager.find_latest_checkpoint()
+                if latest_task_cp is not None and latest_task_cp.exists():
+                    boundary_file = latest_task_cp
+
+            if boundary_file is not None and boundary_file.exists():
+                boundary = torch.load(boundary_file, map_location="cpu", weights_only=False)
                 self._validate_payload(boundary)
                 self._apply_state(boundary, with_snapshot=True)
+                self.log.info("Da phuc hoi teacher snapshot tu %s", boundary_file.name)
             payload = torch.load(self.live_path, map_location="cpu", weights_only=False)
             self._validate_payload(payload)
             self._apply_state(payload, with_snapshot=False, with_optimizers=True)
@@ -658,21 +702,14 @@ class DirectionOneExperiment:
                 progress["next_epoch"],
             )
             return int(progress["task_id"]), int(progress["next_epoch"]), True
-        if self.boundary_path.exists():
-            payload = torch.load(self.boundary_path, map_location="cpu", weights_only=False)
-            self._validate_payload(payload)
-            self._apply_state(payload, with_snapshot=True)
-            self.log.info("Resume tu checkpoint_boundary.pt (task %s)", payload["progress"]["task_id"])
-            return int(payload["progress"]["task_id"]) + 1, 0, False
 
-        # Fallback: scan for any checkpoint_task_<t>.pt in output_dir
-        task_checkpoints = sorted(self.output_dir.glob("checkpoint_task_*.pt"))
-        if task_checkpoints:
-            latest_cp = task_checkpoints[-1]
+        # 2. Check task-by-task checkpoints (task_XX.pt or checkpoint_task_XX.pt or checkpoint_boundary.pt)
+        next_task_id, latest_cp = self.checkpoint_manager.find_latest_checkpoint()
+        if latest_cp is not None and latest_cp.exists():
             payload = torch.load(latest_cp, map_location="cpu", weights_only=False)
             self._validate_payload(payload)
             self._apply_state(payload, with_snapshot=True)
-            finished_task_id = int(payload.get("progress", {}).get("task_id", 0))
+            finished_task_id = int(payload.get("progress", {}).get("task_id", next_task_id - 1))
             self.log.info(
                 "Resume tu %s (task %s da hoan thanh -> bat dau task %s)",
                 latest_cp.name,
@@ -682,6 +719,7 @@ class DirectionOneExperiment:
             return finished_task_id + 1, 0, False
 
         return 0, 0, False
+
 
     def _validate_payload(self, payload: dict) -> None:
         """Lightweight sanity checks before applying a checkpoint payload."""
@@ -849,7 +887,8 @@ class DirectionOneExperiment:
 
     def _save_outputs(self, summary: dict[str, float]) -> None:
         """Final checkpoint (bases/factors/classifier only), metrics JSON and accuracy CSV."""
-        torch.save(self._base_payload(), self.output_dir / "checkpoint_last.pt")
+        if self.keep_task_checkpoints:
+            torch.save(self._base_payload(), self.output_dir / "checkpoint_last.pt")
         self._write_running_metrics(summary)
         self.writer.add_hparams(
             {"experiment": str(self.cfg.experiment.name), "seed": str(self.cfg.experiment.seed)},
