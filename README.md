@@ -1,216 +1,167 @@
 # BiCyc Multi-Adapter: Exemplar-Free Class-Incremental Learning (EFCIL)
 
-Hệ thống mã nguồn và pipeline thực nghiệm cho bài toán **Học tăng cường theo lớp không lưu mẫu (Exemplar-Free Class-Incremental Learning - EFCIL)** trên mô hình thị giác nền tảng **Vision Transformer (ViT)** đóng băng.
+Hệ thống mã nguồn và khung thực nghiệm nghiên cứu bài toán **Học tăng cường theo lớp không lưu mẫu (Exemplar-Free Class-Incremental Learning - EFCIL)** trên mô hình thị giác nền tảng **Vision Transformer (ViT)** đóng băng.
 
-Tài liệu này tập trung toàn bộ vào **Hướng nghiên cứu số 1 (`keeplora_bicyc`)**: Kiến trúc lai kết hợp **KeepLoRA** đa adapter, định tuyến phân phối đặc trưng đại diện (**PFD Router**), căn chỉnh hai chiều (**BiCyc**), cùng các đóng góp lý thuyết mới (**Vector Channel-wise Adaptive Gate** và **Isometric Regularizer**).
-
----
-
-## 1. Tóm tắt Hướng Nghiên cứu Số 1 (`keeplora_bicyc`)
-
-### 1.1. Bản chất Bài toán
-* **Mục tiêu**: Huấn luyện mô hình ViT nhận diện tuần tự $T$ tác vụ phân loại lớp mới (chuẩn thực nghiệm: 10 tasks CIFAR-100, mỗi task gồm 10 lớp phân biệt).
-* **Ràng buộc nghiêm ngặt**: **Tuyệt đối không lưu trữ bất kỳ ảnh mẫu cũ nào ($0$ exemplars)** do yêu cầu bảo mật quyền riêng tư và giới hạn bộ nhớ.
-* **Thách thức cốt lõi**: Giải quyết nghịch lý giữa tính bảo tồn tri thức cũ (*Stability*) và tính mềm dẻo tiếp thu khái niệm mới (*Plasticity*), loại bỏ hiện tượng *quên thảm họa (catastrophic forgetting)*.
-
-### 1.2. Cơ chế Hoạt động & Đóng góp Khoa học Đề xuất
-Phương pháp đề xuất giải quyết bài toán qua 5 trụ cột kỹ thuật:
-
-```text
-                  Input Batch x_t (Current Task Stream)
-                     │                            │
-                     ▼                            ▼
-        ┌─────────────────────────┐  (no-grad) ┌─────────────────────────┐
-        │  Current Model f_t(x)   │            │ Teacher Snapshot f_{t-1} │
-        │  (ViT + RoutedKeepLoRA) │            │ (Immutable Snapshot)    │
-        └────────────┬────────────┘            └────────────┬────────────┘
-                     │ z_new                                │ z_old
-                     ▼                                      ▼
-        ┌────────────────────────────────────────────────────────────────┐
-        │ 1. Channel-wise Gaussian-KL Divergence δ_{t, i}                │
-        │ 2. Vector Adaptive Distribution Gate λ_{t, i} ∈ [λ_min, λ_max] │
-        └──────────────────────────────┬─────────────────────────────────┘
-                                       │
-                ┌──────────────────────┴──────────────────────┐
-                ▼                                             ▼
-    ┌───────────────────────────────┐           ┌───────────────────────────────┐
-    │     BƯỚC 1: MODEL STEP        │           │   BƯỚC 2: ALIGNMENT STEP      │
-    │  (Optimizer 1 - Train B, Head)│           │    (Optimizer 2 - Train A, D) │
-    │  • L_CE(logits, y_t)          │           │  • L_bi(A, D on sg(z))        │
-    │  • L_distill(D(z_new), z_old, │           │  • L_cyc(Cycle consistency)   │
-    │              vector λ_{t, i}) │           │  • L_iso (Norm & Direction)   │
-    │  • Freeze: A_t, Maps A, D     │           │  • Detached Inputs (sg)       │
-    └───────────────────────────────┘           └───────────────────────────────┘
-```
-
-1. **KeepLoRA Residual Gradient SVD**:
-   * Tích hợp các adapter rank thấp vào các tầng tuyến tính (`qkv`, `proj`, `fc1`, `fc2`) của ViT đóng băng.
-   * Chiếu gradient dư vào không gian trực giao với không gian trọng số cơ sở $W_p$ và không gian kích hoạt lịch sử $M_{t-1}$: $\hat{G}_t = (I - Q_{t-1}Q_{t-1}^\top) G_t$.
-   * Khởi tạo $A_t$ và $B_t^{(0)}$ qua SVD; đóng băng vĩnh viễn $A_t$, chỉ huấn luyện $B_t$ với công thức bảo toàn hàm $\Delta W_t = \frac{\alpha}{r} A_t (B_t - B_t^{(0)})$.
-2. **Ngân hàng Đa Adapter & Định tuyến Động PFD (Cosine Router)**:
-   * Không gộp (*merge*) adapter vào backbone để tránh suy thoái biểu diễn; duy trì một ngân hàng gồm $t+1$ adapter riêng biệt.
-   * Tích lũy kỳ vọng trực tuyến $\mathcal{D}_k^l = \mathbb{E}[W^l h^l(x)]$ không lưu mẫu; khi suy diễn, sử dụng độ tương đồng Cosine Top-K để tự động định tuyến đến đúng adapter chuyên biệt.
-3. **Căn chỉnh Hai chiều BiCyc & Ràng buộc Đẳng cự ($L_{iso}$ - Đề xuất mới)**:
-   * Huấn luyện hai mạng affine đối ngẫu: Adapter $A: z_{old} \to z_{new}$ và Distiller $D: z_{new} \to z_{old}$ kết hợp mất mát chu trình đối xứng $\mathcal{L}_{cyc}$.
-   * **Đóng góp mới**: Bổ sung hàm phạt đẳng cự $\mathcal{L}_{iso}$ kiểm soát biến dạng độ dài chuẩn vector và chống lệch góc hướng xoay, ngăn chặn hiện tượng bùng nổ hoặc co rút phương sai khi vận chuyển phân phối qua nhiều tác vụ liên tiếp.
-4. **Cổng Phân phối Thích ứng Theo Kênh (Channel-wise Gate - Đề xuất mới)**:
-   * Đo lường phân kỳ đối xứng Gaussian-KL theo từng chiều đặc trưng $\delta_{t, i}$ trên batch hiện tại.
-   * Sinh vector trọng số $\vec{\lambda}_{t, i} \in [\lambda_{min}, \lambda_{max}]^d$. Các kênh có biến động nhỏ (đặc trưng ngữ nghĩa chung) được bảo tồn triệt để, các kênh có độ lệch lớn được giảm lực cản chưng cất để mô hình tự do tiếp nhận khái niệm mới.
-5. **Cơ chế Cô lập Gradient Hai Bộ Tối ưu Hóa (Two-Optimizer)**:
-   * Phân tách rạch ròi quá trình tối ưu trong mỗi batch: *Model Step* cập nhật $B_t$ và Head; *Alignment Step* cập nhật duy nhất các ánh xạ $A$ và $D$ trên đặc trưng đã ngắt gradient (`detach()`).
-6. **Bộ phân loại Gaussian-Bayes Không Lưu Mẫu**:
-   * Mỗi lớp được đại diện bởi kỳ vọng và hiệp phương sai $(\mu_c, \Sigma_c)$.
-   * Khi qua tác vụ mới, thống kê lớp cũ được vận chuyển affine qua map $A$: $\mu'_c = \mu_c W_A^\top + b_A$ và $\Sigma'_c = W_A \Sigma_c W_A^\top$. Suy luận phân loại bằng khoảng cách Mahalanobis log-likelihood.
-
-> Chi tiết toán học và báo cáo học thuật đầy đủ được lưu tại:
-> * [Báo cáo Nghiên cứu Khoa học (SCIENTIFIC_REPORT.md)](docs/SCIENTIFIC_REPORT.md)
-> * [Đặc tả Toán học & Nguyên lý Hoạt động Hướng 1 (DIRECTION1_SPEC.md)](docs/DIRECTION1_SPEC.md)
-> * [Sơ đồ Kiến trúc & Luồng Dữ liệu (ARCHITECTURE.md)](docs/ARCHITECTURE.md)
+Dự án phát triển kiến trúc lai **`keeplora_bicyc`**: Kết hợp **KeepLoRA** ngân hàng đa adapter, định tuyến phân phối đặc trưng đại diện (**PFD Router**), căn chỉnh phân phối hai chiều (**BiCyc**), cùng hai đóng góp lý thuyết mới: **Cổng phân phối thích ứng theo kênh (Channel-wise KL Gate)** và **Ràng buộc bảo toàn đẳng cự (Isometric Regularizer)**.
 
 ---
 
-## 2. Cấu trúc Dự án
+## 1. Tổng Quan Hướng Nghiên Cứu
 
-```text
-BiCyc_MultiAdapter/
-├── configs/                     # Cấu hình thử nghiệm Hydra YAML
-│   ├── experiment/              # Presets: keeplora_bicyc, keeplora_bicyc_8gb, keeplora_original...
-│   ├── model/                   # Cấu hình ViT-Base & KeepLoRA
-│   └── data/                    # Cấu hình 10 tasks CIFAR-100
-├── docs/                        # Báo cáo và tài liệu khoa học
-│   ├── SCIENTIFIC_REPORT.md     # Báo cáo nghiên cứu học thuật chuẩn bài báo/luận văn
-│   ├── DIRECTION1_SPEC.md       # Toàn văn đặc tả toán học chi tiết Hướng 1
-│   ├── ARCHITECTURE.md          # Sơ đồ dòng dữ liệu và ranh giới gradient
-│   └── RUN_DIRECTION1.md        # Hướng dẫn chi tiết benchmark & ablation
-├── scripts/
-│   └── smoke_direction1.py      # Smoke test kiểm tra logic toàn diện trong vài giây
-├── src/bicyc_multiadapter/      # Mã nguồn chính
-│   ├── data/                    # Split CIFAR-100 CIL không lưu mẫu (cil_dataset.py)
-│   ├── models/
-│   │   ├── backbones/           # ViT đóng băng từ timm (vit_timm.py)
-│   │   ├── adapters/            # KeepLoRA SVD (keeplora.py) & PFD Router (routing.py)
-│   │   ├── alignment/           # BiCyc, L_iso (bicyc.py) & Channel Gate (distribution.py)
-│   │   ├── classifier.py        # GaussianCILClassifier (transport qua A, Bayes scoring)
-│   │   └── keeplora_model.py    # Mô hình tích hợp ViT + RoutedKeepLoRA
-│   ├── engine/
-│   │   ├── keeplora_trainer.py  # Huấn luyện 2-Optimizer tách biệt
-│   │   └── task_loop.py         # Pipeline vòng đời CIL, snapshot, resume tự động
-│   ├── evaluation/              # Đo lường: accuracy matrix, forgetting, drift
-│   └── utils/                   # Checkpoint an toàn, reproducibility, logging
-└── tests/unit/                  # Kiểm thử đơn vị cho từng module
-```
+### 1.1. Bối Cảnh & Thách Thức
+* **Bài toán**: Huấn luyện tuần tự $T$ tác vụ phân loại lớp mới (chuẩn benchmark 10 tasks CIFAR-100, mỗi task 10 lớp phân biệt).
+* **Ràng buộc khắt khe**: **Tuyệt đối không lưu trữ bất kỳ ảnh mẫu cũ nào ($0$ exemplars)** nhằm tuân thủ quyền riêng tư (GDPR) và tiết kiệm bộ nhớ phần cứng.
+* **Mục tiêu**: Giải quyết triệt để nghịch lý giữa bảo tồn tri thức cũ (*Stability*) và tiếp thu khái niệm mới (*Plasticity*), loại bỏ hiện tượng *quên thảm họa (catastrophic forgetting)*.
+
+### 1.2. Các Đóng Góp Cốt Lõi
+1. **KeepLoRA Residual SVD Initialization**: Chiếu gradient vào không gian hạch (Null-space) trực giao với tri thức cũ $(I - Q_{t-1}Q_{t-1}^\top)G_t$, khởi tạo adapter bảo toàn hàm số $\Delta W_t^{(0)} = \mathbf{0}$.
+2. **Ngân Hàng Đa Adapter & Định Tuyến PFD (Cosine Router)**: Duy trì các adapter riêng biệt theo từng tác vụ (không gộp đè làm loãng tri thức). Khi suy diễn, tự động kích hoạt adapter tối ưu nhất theo cơ chế Hard Top-1.
+3. **Căn Chỉnh Hai Chiều BiCyc & Ràng Buộc Đẳng Cự ($L_{iso}$ - Đề xuất mới)**: Mạng affine đối ngẫu $A$ và $D$ chuyển đổi đặc trưng giữa hai không gian cũ-mới, kết hợp hàm phạt đẳng cự giữ $|\det(W_A)| \approx 1$ chống co rút/bùng nổ elip phân phối.
+4. **Cổng Phân Phối Thích Ứng Theo Kênh ($\vec{\lambda}_{t,i}$ - Đề xuất mới)**: Tính toán phân kỳ KL đối xứng trên 768 kênh của ViT. Kênh bảo lưu ngữ nghĩa chung được siết chặt chưng cất ($\lambda \to 1.0$), kênh học mới được nới lỏng ($\lambda \to 0.3$).
+5. **Rào Cản Hai Bộ Tối Ưu (Two-Optimizer Barrier)**: Tách biệt hai luồng tối ưu: *Model Step* cập nhật Adapter/Head; *Alignment Step* cập nhật mạng căn chỉnh $A, D$ trên vector đã ngắt gradient (`detach()`).
+6. **Vận Chuyển Phân Phối Giải Tích & Phân Loại Bayes**: Lưu trữ thống kê lớp dưới dạng phân phối Gauss $(\mu_c, \Sigma_c)$ dung lượng siêu nhẹ (~6.2KB/lớp). Vận chuyển tức thì qua công thức giải tích khi sang task mới, phân loại bằng khoảng cách Mahalanobis khử thiên vị recency bias.
 
 ---
 
-## 3. Cài đặt Môi trường (Windows / Linux / macOS)
+## 2. Minh Họa Các Luồng Hoạt Động Cốt Lõi
 
-### Yêu cầu Hệ thống
-* **Python**: **3.11 hoặc 3.12**
-* **Phần cứng**: Khuyến nghị GPU NVIDIA $\ge$ 8 GB VRAM (RTX 3060, 4060, 4070... hoặc T4/P100 trên Cloud). Vẫn có thể chạy trên CPU để kiểm thử logic.
-* **CUDA**: Driver tương thích CUDA $\ge$ 12.4 (nếu dùng GPU).
+Hệ thống vận hành khép kín qua **4 giai đoạn**:
 
-### Bước 1: Khởi tạo và kích hoạt môi trường ảo
+### Giai Đoạn 1: Chiếu Gradient Null-Space & Khởi Tạo KeepLoRA
+Gradient tác vụ mới được chiếu qua phần bù trực chuẩn để không làm thay đổi các hướng kích hoạt quan trọng của tác vụ cũ. Khởi tạo $A_t, B_t^{(0)}$ sao cho độ lệch trọng số ban đầu triệt tiêu hoàn toàn.
 
-**Trên Windows (PowerShell):**
-```powershell
+<p align="center">
+  <img src="docs/figures/flow_phase1_init.svg" alt="Giai Đoạn 1: Khởi Tạo KeepLoRA & Chiếu Null-Space" width="90%">
+</p>
+
+---
+
+### Giai Đoạn 2: Huấn Luyện 2-Optimizer & Cổng KL 768 Kênh Thích Ứng
+Tách biệt hai luồng tối ưu độc lập bằng rào cản `detach()`. Cổng $\vec{\lambda}_{t,i}$ phân hóa linh hoạt 768 kênh ViT dựa trên độ dịch chuyển phân phối Gaussian-KL.
+
+<p align="center">
+  <img src="docs/figures/flow_phase2_training.svg" alt="Giai Đoạn 2: Huấn Luyện Two-Optimizer & Cổng Kênh Thích Ứng" width="90%">
+</p>
+
+---
+
+### Giai Đoạn 3: Tiêu Hủy Dữ Liệu Thô (GDPR) & Vận Chuyển Gauss Giải Tích
+Ngay khi hoàn thành task, toàn bộ ảnh thô bị xóa bỏ. Phân phối Gauss $(\mu_c, \Sigma_c)$ của các lớp cũ được vận chuyển giải tích sang tọa độ mới qua ánh xạ Affine $A$ mà không cần sinh ảnh mẫu giả.
+
+<p align="center">
+  <img src="docs/figures/flow_phase3_post_task.svg" alt="Giai Đoạn 3: Tiêu Hủy Ảnh & Vận Chuyển Giải Tích" width="90%">
+</p>
+
+---
+
+### Giai Đoạn 4: Định Tuyến Zero-Hint Cosine Router & Phân Loại Mahalanobis
+Khi thử nghiệm mẫu ảnh bất kỳ (không cung cấp Task-ID), Cosine Router tìm adapter có độ tương đồng phân phối cao nhất. Vector đặc trưng được chấm điểm log-likelihood trên toàn bộ các lớp qua khoảng cách Mahalanobis elip.
+
+<p align="center">
+  <img src="docs/figures/flow_phase4_inference.svg" alt="Giai Đoạn 4: Định Tuyến Suy Diễn & Phân Loại Bayes" width="90%">
+</p>
+
+> 🔗 **Tài Liệu Chi Tiết & Demo Tương Tác Trực Tiếp:**
+> * [**Báo Cáo Chi Tiết Về Luồng Hoạt Động & Công Thức Toán (WORKFLOW_EXPLAINED.md)**](docs/WORKFLOW_EXPLAINED.md) *(Khuyên đọc)*
+> * [**Trang Trình Chiếu Báo Cáo Slide Động (presentation_slides.html)**](docs/presentation_slides.html)
+> * [**Phần Mềm Mô Phỏng Trực Quan Pipeline Tương Tác (interactive_pipeline.html)**](docs/interactive_pipeline.html)
+> * [Báo Cáo Nghiên Cứu Khoa Học Chuẩn Luận Văn (SCIENTIFIC_REPORT.md)](docs/SCIENTIFIC_REPORT.md)
+> * [Đặc Tả Toán Học Chi Tiết Hướng 1 (DIRECTION1_SPEC.md)](docs/DIRECTION1_SPEC.md)
+
+---
+
+## 3. Cài Đặt Môi Trường
+
+### Yêu cầu phần cứng & phần mềm:
+* **Python**: 3.11 hoặc 3.12
+* **Phần cứng**: GPU NVIDIA $\ge$ 8 GB VRAM (RTX 3060, 4060, 4070... hoặc T4/P100 trên Cloud). Có hỗ trợ chạy CPU để kiểm thử logic.
+* **CUDA**: Khuyến nghị CUDA $\ge$ 12.4.
+
+### Các bước cài đặt:
+
+```bash
+# 1. Khởi tạo và kích hoạt môi trường ảo
+# Trên Windows (PowerShell):
 python -m venv .venv
 .venv\Scripts\Activate.ps1
-python -m pip install --upgrade pip
-```
 
-**Trên Linux / macOS:**
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
-python -m pip install --upgrade pip
-```
+# Trên Linux / macOS:
+# python3 -m venv .venv && source .venv/bin/activate
 
-### Bước 2: Cài đặt PyTorch & Torchvision
+# 2. Cài đặt PyTorch & Torchvision (CUDA 12.4)
+pip install torch==2.5.1 torchvision==0.20.1 --index-url https://download.pytorch.org/whl/cu124
+# (Nếu chỉ dùng CPU: pip install torch==2.5.1 torchvision==0.20.1 --index-url https://download.pytorch.org/whl/cpu)
 
-* **Nếu có GPU NVIDIA (CUDA 12.4):**
-  ```bash
-  pip install torch==2.5.1 torchvision==0.20.1 --index-url https://download.pytorch.org/whl/cu124
-  ```
-* **Nếu chỉ dùng CPU:**
-  ```bash
-  pip install torch==2.5.1 torchvision==0.20.1 --index-url https://download.pytorch.org/whl/cpu
-  ```
-
-### Bước 3: Cài đặt thư viện phụ thuộc và cài đặt gói dự án
-```bash
+# 3. Cài đặt các thư viện phụ thuộc và mã nguồn dự án
 pip install -r requirements/base.txt
 pip install -e .
 ```
-*(Tùy chọn cho nhà phát triển: cài đặt thêm công cụ kiểm thử qua `pip install -r requirements/dev.txt`)*
 
 ---
 
-## 4. Hướng dẫn Chạy Thực nghiệm Hướng 1
+## 4. Khởi Tạo & Chạy Thực Nghiệm
 
-### 4.1. Kiểm tra nhanh hệ thống (Smoke Test không cần GPU / không cần tải dữ liệu)
-Chạy kịch bản kiểm thử toàn bộ vòng đời thuật toán (SVD gradient init, QR projection, 2-optimizer step, channel-wise gate, Gaussian transport) chỉ trong 3–5 giây:
+### 4.1. Kiểm Tra Nhanh Hệ Thống (Smoke Test - 3 giây)
+Kiểm tra toàn bộ luồng thuật toán (SVD gradient, chiếu QR, 2-optimizer, kênh KL gate, vận chuyển Gauss) mà không cần tải dữ liệu và không cần GPU:
 ```bash
 python scripts/smoke_direction1.py
 ```
-> Kết quả mong đợi: `SMOKE TEST OK`
+> Kết quả chuẩn: `SMOKE TEST OK`
 
 ---
 
-### 4.2. Chạy Thực nghiệm Huấn luyện CIL (10 tasks CIFAR-100)
-*(Dữ liệu CIFAR-100 sẽ được tự động tải về thư mục `data/cifar100/` trong lần chạy đầu tiên).*
+### 4.2. Huấn Luyện Toàn Bộ Pipeline 10 Tasks (CIFAR-100)
+*(Dữ liệu benchmark CIFAR-100 được tự động tải về thư mục `data/cifar100/` trong lần chạy đầu tiên).*
 
-#### A. Chạy thử 1 epoch/task (Kiểm tra VRAM và luồng dữ liệu trước khi train full):
+#### A. Chạy Thử 1 Epoch/Task (Kiểm tra VRAM & pipeline):
 ```powershell
 python -m bicyc_multiadapter.train experiment=keeplora_bicyc_8gb experiment.train.epochs_per_task=1 experiment.train.batch_size=16
 ```
 
-#### B. Huấn luyện Đầy đủ Phương pháp Đề xuất Hướng 1 (Proposed: Multi-Adapter + BiCyc + Channel Gate + $L_{iso}$):
-* **Cấu hình tối ưu cho GPU 8 GB (RTX 3060/4060 Desktop/Laptop):**
-  ```powershell
-  python -m bicyc_multiadapter.train experiment=keeplora_bicyc_8gb
-  ```
-* **Cấu hình cho GPU lớn ($\ge$ 12 GB VRAM - Batch size 128):**
-  ```powershell
-  python -m bicyc_multiadapter.train experiment=keeplora_bicyc
-  ```
-
-#### C. Huấn luyện Mô hình Đối chứng (Baseline KeepLoRA Nguyên gốc - Gộp adapter, không căn chỉnh):
+#### B. Chạy Đầy Đủ Phương Pháp Đề Xuất (Proposed: Multi-Adapter + BiCyc + Channel Gate + $L_{iso}$):
 ```powershell
-# Cho GPU 8GB:
+# Dành cho GPU 8 GB VRAM (RTX 3060/4060/Laptop):
+python -m bicyc_multiadapter.train experiment=keeplora_bicyc_8gb
+
+# Dành cho GPU lớn (>= 12 GB VRAM - Batch size 128):
+python -m bicyc_multiadapter.train experiment=keeplora_bicyc
+```
+
+#### C. Chạy Mô Hình Đối Chứng (Baseline KeepLoRA Gốc - Gộp adapter, không căn chỉnh BiCyc):
+```powershell
+# Dành cho GPU 8 GB:
 python -m bicyc_multiadapter.train experiment=keeplora_original_8gb
 
-# Cho GPU >= 12GB:
+# Dành cho GPU >= 12 GB:
 python -m bicyc_multiadapter.train experiment=keeplora_original
 ```
 
-#### D. Chạy các Thử nghiệm Triệt tiêu Thành phần (Ablation Studies):
-* **Ablation 1: Dùng cổng vô hướng (Scalar Adaptive Gate):**
-  ```powershell
-  python -m bicyc_multiadapter.train experiment=keeplora_bicyc_8gb experiment.alignment.channelwise_gate=false
-  ```
-* **Ablation 2: Không sử dụng cổng thích ứng (Cố định $\lambda_t = 1.0$):**
-  ```powershell
-  python -m bicyc_multiadapter.train experiment=keeplora_bicyc_8gb experiment.alignment.adaptive_gate=false
-  ```
-* **Ablation 3: Không sử dụng ràng buộc đẳng cự ($L_{iso} = 0$):**
-  ```powershell
-  python -m bicyc_multiadapter.train experiment=keeplora_bicyc_8gb experiment.alignment.lambda_iso=0.0
-  ```
+#### D. Chạy Các Thử Nghiệm Triệt Tiêu (Ablation Studies):
+```powershell
+# 1. Dùng cổng vô hướng (Scalar Adaptive Gate):
+python -m bicyc_multiadapter.train experiment=keeplora_bicyc_8gb experiment.alignment.channelwise_gate=false
+
+# 2. Không dùng cổng thích ứng (Cố định lambda = 1.0):
+python -m bicyc_multiadapter.train experiment=keeplora_bicyc_8gb experiment.alignment.adaptive_gate=false
+
+# 3. Không dùng ràng buộc đẳng cự (L_iso = 0):
+python -m bicyc_multiadapter.train experiment=keeplora_bicyc_8gb experiment.alignment.lambda_iso=0.0
+```
 
 ---
 
-### 4.3. Cơ chế Tự động Khôi phục (Auto Resume)
-Hệ thống tích hợp sẵn cơ chế lưu checkpoint phân cấp an toàn:
-* `checkpoint_boundary.pt`: Tự động lưu trạng thái mô hình ngay khi kết thúc một task.
-* `checkpoint_live.pt`: Tự động lưu tiến trình từng epoch và trạng thái optimizer.
+### 4.3. Cơ Chế Tự Động Khôi Phục (Auto Resume)
+Hệ thống tự động ghi nhớ trạng thái huấn luyện:
+* `checkpoint_boundary.pt`: Tự động lưu khi vừa kết thúc một task.
+* `checkpoint_live.pt`: Tự động lưu từng epoch và trạng thái optimizer.
 
-Nếu quá trình huấn luyện bị ngắt quãng giữa chừng (mất điện, timeout trên Cloud, nhấn `Ctrl+C`), **chỉ cần chạy lại chính xác câu lệnh huấn luyện trước đó**, hệ thống sẽ tự động phát hiện checkpoint và tiếp tục huấn luyện mà không làm mất dữ liệu đã học.
+Nếu quá trình huấn luyện bị gián đoạn (mất điện, ngắt kết nối Cloud, `Ctrl+C`), **chỉ cần chạy lại chính xác câu lệnh trước đó**, mã nguồn sẽ tự động phát hiện và huấn luyện tiếp từ điểm dừng.
 
 ---
 
-### 4.4. Theo dõi Huấn luyện & Đánh giá Kết quả
+### 4.4. Theo Dõi & Đánh Giá Kết Quả
 
-* **Xem trực quan hóa biểu đồ qua TensorBoard:**
+* **Mở bảng điều khiển trực quan hóa TensorBoard:**
   ```bash
   tensorboard --logdir outputs
   ```
@@ -218,21 +169,17 @@ Nếu quá trình huấn luyện bị ngắt quãng giữa chừng (mất điệ
   ```powershell
   python -m bicyc_multiadapter.evaluate experiment=keeplora_bicyc_8gb
   ```
-* **Xem số liệu thực nghiệm:**
-  Toàn bộ kết quả chi tiết, ma trận độ chính xác $10 \times 10$, mức độ quên (*average forgetting*), độ trôi biểu diễn (*representation drift*) được lưu tại:
-  `outputs/<tên_thí_nghiệm>/seed_<seed>/` (gồm các tệp `history.jsonl`, `train_log.csv`, và `run.log`). Bạn có thể sao chép trực tiếp các số liệu này vào biểu mẫu [Báo cáo Nghiên cứu Khoa học (SCIENTIFIC_REPORT.md)](docs/SCIENTIFIC_REPORT.md).
+* **Vị trí lưu trữ dữ liệu thực nghiệm:**
+  Ma trận độ chính xác $10 \times 10$, mức độ quên trung bình (*average forgetting*), độ trôi biểu diễn (*representation drift*) được ghi tự động tại:
+  `outputs/<tên_thí_nghiệm>/seed_<seed>/` (gồm `history.jsonl`, `train_log.csv`, và `run.log`).
 
 ---
 
-### 4.5. Chạy trên Docker hoặc Nền tảng Đám mây (Kaggle / Colab)
-
-* **Chạy bằng Docker:**
+### 4.5. Triển Khai Docker & Cloud (Kaggle / Colab)
+* **Docker:**
   ```bash
   docker compose build
   docker compose run --rm research bash
-  
-  # Lệnh chạy bên trong container:
   python -m bicyc_multiadapter.train experiment=keeplora_bicyc
   ```
-* **Chạy trên Kaggle / Google Colab:**
-  Mở notebook [`notebooks/kaggle_train.ipynb`](notebooks/kaggle_train.ipynb), bật chế độ tăng tốc GPU (T4 hoặc P100), chạy tuần tự các cell. Notebook đã tích hợp sẵn AMP `fp16`, TF32 và cell nén kết quả `results.zip` ở cuối phiên.
+* **Kaggle / Colab:** Sử dụng notebook [`notebooks/kaggle_train.ipynb`](notebooks/kaggle_train.ipynb), bật chế độ GPU (T4/P100). Notebook đã cấu hình sẵn AMP `fp16`, TF32 và tự động nén `results.zip` sau khi hoàn thành.

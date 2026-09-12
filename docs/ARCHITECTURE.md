@@ -103,3 +103,13 @@ Mỗi task $t \in \{0, \dots, T-1\}$ trải qua 6 giai đoạn có kiểm soát 
    * Đánh giá ma trận độ chính xác trên toàn bộ test set của các task đã học từ $0 \dots t$.
    * Lưu checkpoint an toàn (rolling atomic save).
 
+---
+
+## 4. Bộ Sơ đồ Minh họa Vector Trực quan (SVG Flow Diagrams)
+
+Hệ thống đi kèm 4 sơ đồ vector SVG chất lượng cao minh họa từng giai đoạn vòng đời của mô hình:
+
+* **[Giai đoạn 1: Khởi tạo Task t & Chiếu Residual SVD](file:///d:/MyProject/BiCyc_MultiAdapter/docs/figures/flow_phase1_init.svg)**: Minh họa cơ sở trực giao $Q_{t-1}$, phép chiếu Null-space $\hat{G}_t$, và tính chất bảo toàn hàm tại Epoch 0.
+* **[Giai đoạn 2: Vòng lặp Huấn luyện Two-Optimizer](file:///d:/MyProject/BiCyc_MultiAdapter/docs/figures/flow_phase2_training.svg)**: Chi tiết ranh giới phân lập gradient giữa Bước 1 (Model Step) và Bước 2 (Alignment Step) cùng cổng Gaussian-KL.
+* **[Giai đoạn 3: Hậu Huấn luyện & Rolling Checkpoint](file:///d:/MyProject/BiCyc_MultiAdapter/docs/figures/flow_phase3_post_task.svg)**: Vận chuyển tham số Bayes qua mạng $A$, cập nhật PFD prototype và cơ chế dọn dẹp file checkpoint cố định 350MB.
+* **[Giai đoạn 4: Kiểm thử Zero-Hint & Đánh giá](file:///d:/MyProject/BiCyc_MultiAdapter/docs/figures/flow_phase4_inference.svg)**: Luồng phân loại khi không có Task-ID thông qua PFD Router và bộ phân loại khoảng cách Mahalanobis.
