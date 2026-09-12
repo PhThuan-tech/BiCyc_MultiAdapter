@@ -65,46 +65,16 @@
     /* Presentation Container */
     #deck-container {
       position: relative;
-      width: 95vw;
-      max-width: 1420px;
-      height: 89vh;
+      width: 96vw;
+      max-width: 1480px;
+      height: 94vh;
       background: #ffffff;
       border: 1px solid var(--card-border);
-      border-radius: 20px;
+      border-radius: 18px;
       box-shadow: var(--shadow-lg), 0 0 0 1px rgba(2, 132, 199, 0.08);
       overflow: hidden;
       display: flex;
       flex-direction: column;
-    }
-
-    /* Top Navigation Header */
-    .deck-header {
-      padding: 14px 36px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      border-bottom: 1px solid var(--card-border);
-      background: #ffffff;
-    }
-
-    .deck-header .logo-badge {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      font-weight: 700;
-      font-size: 0.95rem;
-      letter-spacing: 0.02em;
-      color: var(--primary-dark);
-    }
-
-    .deck-header .logo-badge span {
-      background: var(--primary-light);
-      border: 1px solid rgba(2, 132, 199, 0.3);
-      padding: 3px 10px;
-      border-radius: 6px;
-      font-size: 0.78rem;
-      font-weight: 700;
-      color: var(--primary-dark);
     }
 
     .slide-progress-bar {
@@ -178,6 +148,14 @@
       align-items: stretch;
     }
 
+    .grid-diagram {
+      display: grid;
+      grid-template-columns: 0.95fr 1.45fr;
+      gap: 20px;
+      align-items: stretch;
+      height: calc(100% - 65px);
+    }
+
     .grid-3 {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
@@ -189,6 +167,123 @@
       display: grid;
       grid-template-columns: 1.1fr 1.5fr;
       gap: 22px;
+    }
+
+    /* Interactive Diagram Card & Zoom Lightbox */
+    .diagram-card {
+      position: relative;
+      cursor: zoom-in;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 10px;
+      background: #ffffff;
+      border: 1px solid var(--card-border);
+      border-radius: 14px;
+      box-shadow: var(--shadow-sm);
+      transition: all 0.25s ease;
+      overflow: hidden;
+    }
+
+    .diagram-card:hover {
+      border-color: var(--primary);
+      box-shadow: 0 8px 24px rgba(2, 132, 199, 0.15);
+      transform: translateY(-2px);
+    }
+
+    .diagram-card img {
+      width: 100%;
+      height: 100%;
+      max-height: 520px;
+      object-fit: contain;
+      border-radius: 8px;
+      transition: transform 0.25s ease;
+    }
+
+    .diagram-card:hover img {
+      transform: scale(1.015);
+    }
+
+    .diagram-badge-bar {
+      position: absolute;
+      top: 14px;
+      right: 14px;
+      display: flex;
+      gap: 8px;
+      z-index: 5;
+    }
+
+    .zoom-hint-btn {
+      background: rgba(15, 23, 42, 0.85);
+      backdrop-filter: blur(6px);
+      color: #ffffff;
+      font-size: 0.76rem;
+      font-weight: 700;
+      padding: 5px 12px;
+      border-radius: 9999px;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      pointer-events: none;
+    }
+
+    /* Diagram Lightbox Modal */
+    #diagram-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(15, 23, 42, 0.88);
+      backdrop-filter: blur(12px);
+      z-index: 2000;
+      display: none;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 24px;
+      box-sizing: border-box;
+      opacity: 0;
+      transition: opacity 0.2s ease-in-out;
+    }
+
+    #diagram-modal.open {
+      display: flex;
+      opacity: 1;
+    }
+
+    .diagram-modal-header {
+      width: 96%;
+      max-width: 1400px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      color: #ffffff;
+    }
+
+    .diagram-modal-content {
+      width: 96%;
+      max-width: 1400px;
+      height: 84vh;
+      background: #ffffff;
+      border-radius: 16px;
+      padding: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+      overflow: hidden;
+      position: relative;
+    }
+
+    .diagram-modal-content img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
     }
 
     /* Card Components */
@@ -408,55 +503,72 @@
       font-style: italic;
     }
 
-    /* Bottom Control Bar */
+    /* Bottom Control Bar - Sleek & Compact */
     .deck-footer {
-      padding: 12px 36px;
+      padding: 7px 24px;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      border-top: 1px solid var(--card-border);
+      border-top: 1px solid rgba(226, 232, 240, 0.8);
       background: #ffffff;
+      min-height: 44px;
+      box-sizing: border-box;
     }
 
     .nav-buttons {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 8px;
     }
 
     .btn {
-      background: #ffffff;
-      border: 1px solid var(--card-border);
-      color: var(--text-main);
-      padding: 7px 16px;
-      border-radius: 8px;
-      font-size: 0.86rem;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      color: #334155;
+      padding: 5px 13px;
+      border-radius: 9999px; /* Rounded pill style */
+      font-size: 0.8rem;
       font-weight: 600;
       cursor: pointer;
-      display: flex;
+      display: inline-flex;
       align-items: center;
-      gap: 8px;
-      transition: all 0.18s;
+      gap: 6px;
+      transition: all 0.15s ease-in-out;
       user-select: none;
+      line-height: 1.3;
     }
 
     .btn:hover:not(:disabled) {
       background: var(--primary);
       border-color: var(--primary);
       color: #ffffff;
-      box-shadow: 0 2px 8px rgba(2, 132, 199, 0.25);
+      box-shadow: 0 2px 6px rgba(2, 132, 199, 0.22);
+      transform: translateY(-1px);
+    }
+
+    .btn:active:not(:disabled) {
+      transform: translateY(0);
     }
 
     .btn:disabled {
       opacity: 0.35;
       cursor: not-allowed;
+      background: #f1f5f9;
+      border-color: #e2e8f0;
     }
 
     .slide-counter {
       font-family: 'JetBrains Mono', monospace;
-      font-size: 0.92rem;
-      color: var(--text-muted);
+      font-size: 0.82rem;
+      color: #64748b;
       letter-spacing: 0.04em;
+      background: #f1f5f9;
+      padding: 3px 14px;
+      border-radius: 9999px;
+      border: 1px solid #e2e8f0;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
     }
 
     /* Modal Grid Overview */
@@ -662,8 +774,9 @@
       }
 
       /* Giữ hình vẽ và sơ đồ trong giới hạn trang in */
-      svg {
-        max-height: 240px !important;
+      svg, img {
+        max-height: 225px !important;
+        object-fit: contain !important;
       }
 
       .image-container {
@@ -691,21 +804,6 @@
   <div id="deck-container">
     <div class="slide-progress-bar" id="progress-bar"></div>
 
-    <!-- Header -->
-    <header class="deck-header">
-      <div class="logo-badge">
-        <span>NCKH 2026</span> BiCyc Multi-Adapter
-      </div>
-      <div style="display: flex; align-items: center; gap: 14px;">
-        <div style="font-size: 0.85rem; color: var(--text-muted); font-weight: 500;">
-          Học Tăng Cường Theo Lớp Không Lưu Mẫu (EFCIL) • Vision Transformer
-        </div>
-        <button class="btn print-btn" id="print-pdf-btn" style="padding: 5px 12px; font-size: 0.82rem; background: var(--primary-light); color: var(--primary-dark); border-color: rgba(2, 132, 199, 0.4);" title="Xuất toàn bộ 21 slide ra file PDF chuẩn in ấn (Phím P)">
-          🖨️ Xuất PDF
-        </button>
-      </div>
-    </header>
-
     <!-- Slide Viewport -->
     <main class="slide-viewport">
 
@@ -727,7 +825,7 @@
           <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; width: 100%; margin-top: 10px;">
             <div class="card" style="padding: 16px; text-align: center;">
               <span style="font-size: 0.8rem; color: var(--text-muted);">Nhóm Nghiên cứu</span>
-              <strong style="font-size: 0.98rem; color: var(--text-main); margin-top: 4px;">Nhóm Continual Learning</strong>
+              <strong style="font-size: 0.98rem; color: var(--text-main); margin-top: 4px;">Nhóm 4</strong>
             </div>
             <div class="card" style="padding: 16px; text-align: center;">
               <span style="font-size: 0.8rem; color: var(--text-muted);">Mô hình Nền tảng</span>
@@ -735,7 +833,7 @@
             </div>
             <div class="card" style="padding: 16px; text-align: center;">
               <span style="font-size: 0.8rem; color: var(--text-muted);">Thời gian báo cáo</span>
-              <strong style="font-size: 0.98rem; color: var(--accent); margin-top: 4px;">Tháng 09 / 2026</strong>
+              <strong style="font-size: 0.98rem; color: var(--accent); margin-top: 4px;">Ngày 12 Tháng 09 năm 2026</strong>
             </div>
           </div>
         </div>
@@ -752,21 +850,27 @@
             <p style="font-size: 0.86rem; color: var(--text-secondary); line-height: 1.45;">
               Nhóm nghiên cứu xuất phát từ việc phân tích sâu hai công trình tiền phong tại <strong>ICLR 2026</strong>:
             </p>
-            <ul class="key-points" style="font-size: 0.83rem; margin-top: 6px;">
-              <li><strong>Bế tắc của KeepLoRA (ICLR 2026):</strong> Chiếu SVD trực giao rất tốt, nhưng lại <em>gộp chung trọng số (Weight Merging)</em> sau mỗi task $\to$ gây chồng lấn không gian và sụt giảm độ chính xác thảm hại ngay sau Task 1.</li>
-              <li><strong>Bế tắc của BiCyc (ICLR 2026):</strong> Căn chỉnh hai chiều nhưng chuỗi ánh xạ affine bị <em>trôi dạt hình học</em> (Norm Drift), làm suy biến ma trận hiệp phương sai Bayes; đồng thời cào bằng 1 số vô hướng $\lambda$ cho cả 768 kênh của ViT.</li>
+            <ul class="key-points" style="font-size: 0.82rem; margin-top: 6px;">
+              <li><strong>Bế tắc của KeepLoRA (Luo et al., ICLR 2026):</strong> Chiếu SVD trực giao rất tốt, nhưng lại <em>gộp chung trọng số (Weight Merging)</em> sau mỗi task $\to$ gây chồng lấn không gian và sụt giảm độ chính xác thảm hại ngay sau Task 1.</li>
+              <li><strong>Bế tắc của BiCyc (Xu & Krawczyk, ICLR 2026):</strong> Căn chỉnh hai chiều nhưng chuỗi ánh xạ affine bị <em>trôi dạt hình học</em> (Norm Drift), làm suy biến ma trận hiệp phương sai Bayes; đồng thời cào bằng 1 số vô hướng $\lambda$ cho cả 768 kênh của ViT.</li>
             </ul>
+            <div style="margin-top: 6px; padding: 4px 8px; background: rgba(5, 150, 105, 0.08); border-radius: 6px; font-size: 0.74rem; color: var(--accent); font-weight: 600;">
+              📖 Trích dẫn: KeepLoRA (ICLR 2026) • BiCyc (ICLR 2026)
+            </div>
           </div>
 
           <div class="card card-blue">
-            <div class="card-title primary">🚀 2. Ý Tưởng Đột Phá Của Nhóm Nghiên Cứu</div>
+            <div class="card-title primary">🚀 2. Ý Tưởng Của Nhóm</div>
             <p style="font-size: 0.86rem; color: var(--text-secondary); line-height: 1.45;">
               Nhóm đặt câu hỏi: <em>"Liệu có thể kết hợp ưu điểm của cả hai, đồng thời xóa bỏ hoàn toàn các điểm nghẽn chết người trên?"</em>
             </p>
-            <ul class="key-points" style="font-size: 0.83rem; margin-top: 6px;">
-              <li><strong>Xóa bỏ Weight Merging:</strong> Dùng Ngân hàng Đa Adapter PFD (ICML 2025) để mỗi task giữ riêng 1 adapter độc lập, triệt tiêu 100% hiện tượng đè trọng số.</li>
+            <ul class="key-points" style="font-size: 0.82rem; margin-top: 6px;">
+              <li><strong>Xóa bỏ Weight Merging:</strong> Dùng Ngân hàng Đa Adapter PFD (Cheng et al., <strong>ICML 2025</strong>) để mỗi task giữ riêng 1 adapter độc lập, triệt tiêu 100% hiện tượng đè trọng số.</li>
               <li><strong>Kiểm soát hình học & Kênh thích ứng:</strong> Bổ sung <em>Ràng buộc Đẳng cự ($L_{iso}$)</em> chống sụp đổ chuẩn và <em>Cổng Vector Gaussian-KL</em> chưng cất riêng biệt theo 768 kênh.</li>
             </ul>
+            <div style="margin-top: 6px; padding: 4px 8px; background: rgba(2, 132, 199, 0.08); border-radius: 6px; font-size: 0.74rem; color: var(--primary-dark); font-weight: 600;">
+              📖 Trích dẫn: PFD (ICML 2025) + 2 Đóng góp nhỏ
+            </div>
           </div>
 
           <div class="card">
@@ -774,10 +878,13 @@
             <p style="font-size: 0.86rem; color: var(--text-secondary); line-height: 1.45;">
               Đáp ứng trọn vẹn các yêu cầu công nghiệp và pháp lý thực tế:
             </p>
-            <ul class="key-points" style="font-size: 0.83rem; margin-top: 6px;">
+            <ul class="key-points" style="font-size: 0.82rem; margin-top: 6px;">
               <li><strong>Exemplar-Free (0 mẫu cũ):</strong> Tuân thủ nghiêm ngặt luật bảo mật <strong>GDPR (Châu Âu)</strong> & <strong>HIPAA (Y tế)</strong> — tuyệt đối không lưu trữ dữ liệu cá nhân.</li>
-              <li><strong>Tối ưu tài nguyên biên (Edge AI):</strong> Đóng băng 98% ViT backbone, chỉ train ~2% tham số adapter; VRAM đỉnh chỉ 5.2GB (chạy mượt trên GPU 8GB phổ thông).</li>
+              <li><strong>Tối ưu tài nguyên biên (Edge AI):</strong> Đóng băng 98% ViT backbone (Dosovitskiy et al., <strong>ICLR 2021</strong>), chỉ train ~2% tham số adapter; VRAM đỉnh chỉ 5.2GB (chạy mượt trên GPU 8GB).</li>
             </ul>
+            <div style="margin-top: 6px; padding: 4px 8px; background: rgba(79, 70, 229, 0.08); border-radius: 6px; font-size: 0.74rem; color: var(--secondary); font-weight: 600;">
+              📖 Trích dẫn: ViT (ICLR 2021) • LoRA (ICLR 2022)
+            </div>
           </div>
         </div>
       </section>
@@ -869,438 +976,525 @@
 
       <!-- SLIDE 5: PROBLEM FORMULATION -->
       <section class="slide">
-        <h1 class="slide-title">4. Phát biểu Toán học của Bài toán EFCIL</h1>
-        <h2 class="slide-subtitle">Mô hình hóa hình thức và mục tiêu tối ưu hóa toàn cục</h2>
+        <h1 class="slide-title">4. Phát biểu Toán học & Bản Chất Hình Học Của Sự Quên Trong EFCIL</h1>
+        <h2 class="slide-subtitle">Mô hình hóa hình thức, Sự sụp đổ siêu phẳng (Hyperplane Collapse) & 3 Ràng buộc ngặt nghèo</h2>
 
         <div class="grid-2">
           <div class="card">
-            <div class="card-title">📐 Dòng Dữ liệu & Không gian Nhãn</div>
-            <p style="font-size: 0.9rem; color: var(--text-secondary);">
-              Dòng $T$ tác vụ liên tiếp $\mathcal{T}_0, \dots, \mathcal{T}_{T-1}$ với tập dữ liệu $\mathcal{D}_t = \{(x_i^t, y_i^t)\}_{i=1}^{N_t}$, điều kiện nhãn độc lập:
+            <div class="card-title">📐 1. Bản Chất Hình Học: Sự Sụp Đổ Siêu Phẳng (Hyperplane Collapse)</div>
+            <p style="font-size: 0.84rem; color: var(--text-secondary); line-height: 1.42;">
+              Trong không gian $d = 768$, mỗi lớp là một đám mây điểm được bao bọc bởi các ranh giới siêu phẳng quyết định:
             </p>
-            <div class="formula-box">
-              $$\mathcal{C}_t \cap \mathcal{C}_{t'} = \emptyset \quad (\forall t \ne t')$$
+            <div style="background: #fef2f2; border-left: 3px solid var(--danger); padding: 7px 10px; border-radius: 6px; margin: 5px 0; font-size: 0.81rem; line-height: 1.4;">
+              <strong style="color: var(--danger);">Sự sụp đổ ranh giới:</strong> Khi học Task $t$, dữ liệu cũ bị tiêu hủy ($\mathcal{D}_{&lt;t} = \emptyset$). Mất mát $\mathcal{L}_{CE}$ chỉ kéo giãn các lớp mới mà tự do xoay ma trận $W$. Hậu quả: Các đám mây điểm cũ bị <em>chiếu chồng lấn lên nhau (feature collapse)</em>, ranh giới cũ tan rã hoàn toàn.
             </div>
-            <ul class="key-points">
-              <li>Tại cuối tác vụ $t$, tập dữ liệu $\mathcal{D}_t$ bị xóa bỏ hoàn toàn ($\mathcal{D}_{<t} = \emptyset$).</li>
-              <li>Mô hình bao gồm: ViT đóng băng $f_0(x)$, tập hợp adapter $\Omega$, và bộ phân loại $\mathcal{G}: \mathbb{R}^d \to \mathcal{C}_{seen}$.</li>
-            </ul>
+            <div style="background: #f8fafc; border-left: 3px solid var(--warning); padding: 7px 10px; border-radius: 6px; font-size: 0.81rem; line-height: 1.4;">
+              <strong style="color: var(--warning);">Nghịch lý "Giữ hay Xoay" (Rigid-Body Dilemma):</strong>
+              <ul style="margin-left: 14px; margin-top: 3px; font-size: 0.79rem;">
+                <li>Đóng băng mạng $\to$ giữ được cũ nhưng không học được mới (<em>Plasticity Underfitting</em>).</li>
+                <li>Fine-tuning / LoRA thường $\to$ gradient mới đè bẹp biểu diễn cũ (<em>Catastrophic Drift</em>).</li>
+                <li>Vanilla KD $\to$ "dây xích cứng" $\|z_{new} - z_{old}\|_2^2$ kìm kẹp, gây xung đột gradient nội bộ.</li>
+              </ul>
+            </div>
           </div>
 
           <div class="card card-blue">
-            <div class="card-title accent">🎯 Hàm Mục Tiêu Tối Ưu Hóa & Ràng Buộc</div>
-            <div class="formula-box accent">
+            <div class="card-title accent">🎯 2. Phát Biểu Toán Học & 3 Ràng Buộc Cốt Tử Của EFCIL</div>
+            <p style="font-size: 0.84rem; color: var(--text-secondary); line-height: 1.42;">
+              Dòng $T$ tác vụ tuần tự $\mathcal{T}_0, \dots, \mathcal{T}_{T-1}$ với không gian nhãn rời rạc $\mathcal{C}_t \cap \mathcal{C}_{t'} = \emptyset$. Mục tiêu tối ưu toàn cục:
+            </p>
+            <div class="formula-box accent" style="padding: 7px 10px; margin: 6px 0; font-size: 0.88rem;">
               $$\min_{\Omega} \sum_{t=0}^{T-1} \mathbb{E}_{(x, y) \sim \mathcal{D}_t} \left[ \mathcal{L}_{CE}\left(\mathcal{G}_{T-1}(f_{\Omega}(x)), y\right) \right]$$
             </div>
-            <div class="formula-meta">
-              <span class="tag accent">Ràng buộc 1</span>
-              <span><strong>Exemplar-Free:</strong> Tuyệt đối $0$ mẫu raw của $\mathcal{D}_{<t}$ được lưu lại bộ nhớ.</span>
-              <span class="tag accent">Ràng buộc 2</span>
-              <span><strong>Zero-Hint Testing:</strong> Khi đánh giá sau $T-1$, không cung cấp bất kỳ gợi ý Task-ID nào.</span>
-              <span class="tag accent">Ràng buộc 3</span>
-              <span><strong>Finite Memory:</strong> Chi phí bộ nhớ tham số không được bùng nổ theo số lượng tác vụ.</span>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- SLIDE 6: PROPOSED ARCHITECTURE -->
-      <section class="slide">
-        <h1 class="slide-title">5. Tổng quan Kiến trúc Đề xuất: BiCyc Multi-Adapter</h1>
-        <h2 class="slide-subtitle">Sự kết hợp đồng bộ giữa 4 trụ cột kỹ thuật then chốt và cơ chế phân lập gradient</h2>
-
-        <div class="grid-2" style="align-items: center;">
-          <div class="card" style="padding: 12px; background: #ffffff; display: flex; align-items: center; justify-content: center; overflow: hidden;">
-            <svg viewBox="0 0 540 375" style="width: 100%; height: auto; max-height: 440px; font-family: 'Inter', system-ui, sans-serif;" xmlns="http://www.w3.org/2000/svg">
-              <defs>
-                <marker id="arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-                  <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#475569"/>
-                </marker>
-                <marker id="arrow-dashed" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-                  <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#64748b"/>
-                </marker>
-              </defs>
-
-              <!-- Node 1: Input Batch -->
-              <rect x="150" y="10" width="240" height="32" rx="6" fill="#f8fafc" stroke="#64748b" stroke-width="1.2"/>
-              <text x="270" y="30" font-size="12" font-weight="600" fill="#0f172a" text-anchor="middle">Input Batch x_t (Dữ liệu tác vụ t)</text>
-
-              <!-- Connectors to Models -->
-              <path d="M 210 42 L 140 73" fill="none" stroke="#475569" stroke-width="1.3" marker-end="url(#arrow)"/>
-              <path d="M 330 42 L 400 73" fill="none" stroke="#64748b" stroke-width="1.3" stroke-dasharray="3 3" marker-end="url(#arrow-dashed)"/>
-              <text x="390" y="58" font-size="10" font-weight="600" fill="#64748b" text-anchor="start">[no-grad]</text>
-
-              <!-- Node 2: Current Model -->
-              <rect x="35" y="75" width="210" height="52" rx="6" fill="#f0f9ff" stroke="#0284c7" stroke-width="1.4"/>
-              <text x="140" y="96" font-size="12" font-weight="700" fill="#0369a1" text-anchor="middle">Current Model f_t(x)</text>
-              <text x="140" y="114" font-size="10.5" fill="#334155" text-anchor="middle">ViT Backbone + PFD Multi-Adapter</text>
-
-              <!-- Node 3: Teacher Snapshot -->
-              <rect x="295" y="75" width="210" height="52" rx="6" fill="#f8fafc" stroke="#64748b" stroke-width="1.4" stroke-dasharray="4 3"/>
-              <text x="400" y="96" font-size="12" font-weight="700" fill="#334155" text-anchor="middle">Teacher Snapshot f_{t-1}(x)</text>
-              <text x="400" y="114" font-size="10.5" fill="#64748b" text-anchor="middle">Mô hình Đóng băng Bất biến</text>
-
-              <!-- Arrows to Middle Block -->
-              <path d="M 140 127 L 140 163" fill="none" stroke="#475569" stroke-width="1.3" marker-end="url(#arrow)"/>
-              <text x="148" y="148" font-size="11" font-family="'JetBrains Mono', monospace" font-weight="600" fill="#0369a1">z_new</text>
-
-              <path d="M 400 127 L 400 163" fill="none" stroke="#475569" stroke-width="1.3" marker-end="url(#arrow)"/>
-              <text x="408" y="148" font-size="11" font-family="'JetBrains Mono', monospace" font-weight="600" fill="#475569">z_old</text>
-
-              <!-- Node 4: Gaussian-KL & Adaptive Gate Block -->
-              <rect x="35" y="165" width="470" height="58" rx="6" fill="#f8fafc" stroke="#334155" stroke-width="1.4"/>
-              <text x="270" y="187" font-size="11.5" font-weight="600" fill="#0f172a" text-anchor="middle">1. Phân kỳ Đối xứng Gaussian-KL theo từng kênh: δ_{t,i}</text>
-              <text x="270" y="207" font-size="11.5" font-weight="600" fill="#0284c7" text-anchor="middle">2. Vector Adaptive Distill Gate: λ_{t,i} ∈ [λ_min, λ_max]^d</text>
-
-              <!-- Connector from Middle Block to 2 Optimizers -->
-              <path d="M 270 223 L 270 248" fill="none" stroke="#475569" stroke-width="1.3"/>
-              <path d="M 140 248 L 400 248" fill="none" stroke="#475569" stroke-width="1.3"/>
-              <path d="M 140 248 L 140 273" fill="none" stroke="#475569" stroke-width="1.3" marker-end="url(#arrow)"/>
-              <path d="M 400 248 L 400 273" fill="none" stroke="#475569" stroke-width="1.3" marker-end="url(#arrow)"/>
-
-              <!-- Central Label for Isolation -->
-              <rect x="180" y="238" width="180" height="20" rx="4" fill="#ffffff" stroke="#94a3b8" stroke-width="1"/>
-              <text x="270" y="252" font-size="9.5" font-weight="700" fill="#475569" text-anchor="middle">Phân Lập Gradient Hai Bộ Tối Ưu</text>
-
-              <!-- Node 5: Model Step -->
-              <rect x="35" y="275" width="225" height="85" rx="6" fill="#f0f9ff" stroke="#0284c7" stroke-width="1.3"/>
-              <text x="147" y="295" font-size="11.5" font-weight="700" fill="#0369a1" text-anchor="middle">BƯỚC 1: Model Step (Opt 1)</text>
-              <text x="147" y="315" font-size="10.5" font-family="'JetBrains Mono', monospace" fill="#0f172a" text-anchor="middle">L_CE + λ_bi · L_distill(λ)</text>
-              <text x="147" y="335" font-size="9.5" fill="#334155" text-anchor="middle">Cập nhật: B_t, Head</text>
-              <text x="147" y="350" font-size="9" fill="#64748b" text-anchor="middle">Đóng băng: A_t, Maps A, D</text>
-
-              <!-- Node 6: Alignment Step -->
-              <rect x="280" y="275" width="225" height="85" rx="6" fill="#f0fdf4" stroke="#059669" stroke-width="1.3"/>
-              <text x="392" y="295" font-size="11.5" font-weight="700" fill="#059669" text-anchor="middle">BƯỚC 2: Alignment Step (Opt 2)</text>
-              <text x="392" y="315" font-size="10.5" font-family="'JetBrains Mono', monospace" fill="#0f172a" text-anchor="middle">λ_bi L_bi + λ_cyc L_cyc + λ_iso L_iso</text>
-              <text x="392" y="335" font-size="9.5" fill="#334155" text-anchor="middle">Cập nhật: Maps A, D</text>
-              <text x="392" y="350" font-size="9" fill="#64748b" text-anchor="middle">Đầu vào ngắt gradient: detach(z)</text>
-            </svg>
-          </div>
-
-          <div style="display: flex; flex-direction: column; gap: 11px;">
-            <div class="card card-blue" style="padding: 13px;">
-              <strong style="color: var(--primary-dark);">1. Residual SVD Init (KeepLoRA):</strong>
-              <p style="font-size: 0.85rem; color: var(--text-secondary);">Chiếu gradient vào không gian bù trực giao, bảo toàn hàm tại bước khởi tạo ($\Delta W = 0$).</p>
-            </div>
-            <div class="card card-highlight" style="padding: 13px;">
-              <strong style="color: var(--accent);">2. PFD Multi-Adapter Bank:</strong>
-              <p style="font-size: 0.85rem; color: var(--text-secondary);">Duy trì ngân hàng adapter riêng biệt, định tuyến Top-1 Cosine theo prototype phân phối.</p>
-            </div>
-            <div class="card" style="padding: 13px; background: #faf5ff; border-color: #e9d5ff;">
-              <strong style="color: var(--secondary);">3. BiCyc + Isometric Regularizer ($L_{iso}$):</strong>
-              <p style="font-size: 0.85rem; color: var(--text-secondary);">Căn chỉnh hai chiều có kiểm soát đẳng cự, bảo vệ ma trận hiệp phương sai Bayes.</p>
-            </div>
-            <div class="card" style="padding: 13px; background: #fffbeb; border-color: #fde68a;">
-              <strong style="color: var(--warning);">4. Channel-wise Vector Gate:</strong>
-              <p style="font-size: 0.85rem; color: var(--text-secondary);">Phân hóa lực cản chưng cất theo 768 kênh đặc trưng dựa trên đối xứng Gaussian-KL.</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- SLIDE 7: PILLAR 1 - KEEPLORA SVD -->
-      <section class="slide">
-        <h1 class="slide-title">6. Trụ cột 1: Chiếu Residual SVD Trực giao (KeepLoRA)</h1>
-        <h2 class="slide-subtitle">Kế thừa: Luo et al. (ICLR 2026) • Khởi tạo adapter bảo toàn hàm và không gian con</h2>
-
-        <div class="grid-2">
-          <div class="card">
-            <div class="card-title">📌 Nguồn gốc & Cơ chế Toán học</div>
-            <p style="font-size: 0.84rem; color: var(--text-muted); margin-bottom: 6px;">
-              <strong>Kế thừa:</strong> Luo et al., ICLR 2026 (KeepLoRA).
-            </p>
-            
-            <p style="font-size: 0.84rem; color: var(--text-muted);">1. Xây dựng cơ sở bảo vệ trực chuẩn từ trọng số & kích hoạt cũ:</p>
-            <div class="formula-box" style="font-size: 0.85rem;">
-              $$Q_{t-1} = \operatorname{QR}([W_p, M_{t-1}]).Q \in \mathbb{R}^{d_{in} \times (p+m)}$$
-            </div>
-
-            <p style="font-size: 0.84rem; color: var(--text-muted);">2. Chiếu gradient tích lũy $G_t$ ra không gian bù trực giao:</p>
-            <div class="formula-box" style="font-size: 0.85rem;">
-              $$\hat{G}_t = (I - Q_{t-1} Q_{t-1}^\top) G_t = \bar{U} \bar{\Sigma} \bar{V}^\top$$
-            </div>
-
-            <p style="font-size: 0.84rem; color: var(--text-muted);">3. Khởi tạo adapter bảo toàn hàm tuyệt đối ($A_t$ bị đóng băng):</p>
-            <div class="formula-box" style="font-size: 0.85rem;">
-              $$A_t = \bar{U}_{:, 1:r}, \quad B_t^{(0)} = \bar{\Sigma}_{1:r, 1:r} \bar{V}_{:, 1:r}^\top \implies \Delta W_t = \frac{\alpha}{r} A_t(B_t - B_t^{(0)})$$
-            </div>
-          </div>
-
-          <div class="card card-blue">
-            <div class="card-title accent">🎯 Mục đích & Ý nghĩa Khoa học</div>
-            <div style="display: flex; flex-direction: column; gap: 14px; font-size: 0.9rem;">
-              <div>
-                <strong style="color: var(--primary-dark);">🎯 Mục đích giải quyết:</strong>
-                <p style="color: var(--text-secondary); margin-top: 4px; font-size: 0.87rem; line-height: 1.45;">
-                  Bảo đảm việc cập nhật adapter cho tác vụ mới không can thiệp hoặc ghi đè vào các chiều đặc trưng đã được các tác vụ trước đó khai thác.
-                </p>
-              </div>
-
-              <div>
-                <strong style="color: var(--accent);">💡 Ý nghĩa Khoa học & Điểm sáng:</strong>
-                <ul class="key-points" style="margin-top: 6px; font-size: 0.85rem;">
-                  <li><strong>Tính chất Function-Preserving:</strong> Tại epoch đầu tiên ($B_t = B_t^{(0)}$), $\Delta W_t = 0 \implies$ mô hình giữ nguyên 100% khả năng suy luận của mô hình trước đó.</li>
-                  <li><strong>Gradient Isolation Tuyệt đối:</strong> Do $\hat{G}_t \perp Q_{t-1}$, hướng cập nhật tối ưu hoàn toàn nằm trong không gian bù, triệt tiêu xung đột gradient với trọng số gốc $W_p$ và kích hoạt lịch sử $M_{t-1}$.</li>
-                </ul>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- SLIDE 8: PILLAR 2 - PFD ROUTER -->
-      <section class="slide">
-        <h1 class="slide-title">7. Trụ cột 2: Ngân hàng Đa Adapter & Định tuyến PFD</h1>
-        <h2 class="slide-subtitle">Kế thừa: Cheng et al. (ICML 2025) • Xóa bỏ hoàn toàn thao tác gộp trọng số (Weight Merging)</h2>
-
-        <div class="grid-2">
-          <div class="card">
-            <div class="card-title">📌 Nguồn gốc & Cơ chế Toán học</div>
-            <p style="font-size: 0.84rem; color: var(--text-muted); margin-bottom: 6px;">
-              <strong>Kế thừa:</strong> Cơ chế định tuyến phân phối đặc trưng từ Cheng et al., ICML 2025 (PFD).
-            </p>
-
-            <p style="font-size: 0.84rem; color: var(--text-muted);">1. Ước lượng trực tuyến prototype phân phối đặc trưng (không lưu mẫu):</p>
-            <div class="formula-box" style="font-size: 0.85rem;">
-              $$\mathcal{D}_k^l = \mathbb{E}_{x \sim \mathcal{D}_k} [W^l h^l(x)] \in \mathbb{R}^{d_{out}}$$
-            </div>
-
-            <p style="font-size: 0.84rem; color: var(--text-muted);">2. Tính độ tương đồng Cosine & Softmax Top-1 ($T=0.1$):</p>
-            <div class="formula-box" style="font-size: 0.85rem;">
-              $$\Phi_{cos}(q, \mathcal{D}_j^l) = \frac{q^\top \mathcal{D}_j^l}{\|q\|_2 \|\mathcal{D}_j^l\|_2 + \epsilon}, \quad w_j = \frac{\exp(\Phi_{cos} / T)}{\sum_{v} \exp(\Phi_{cos} / T)}$$
-            </div>
-
-            <p style="font-size: 0.84rem; color: var(--text-muted);">3. Đầu ra tầng tuyến tính được phối hợp động:</p>
-            <div class="formula-box" style="font-size: 0.85rem;">
-              $$y = W^l h^l(x) + \sum_{j \in \operatorname{TopK}} w_j \cdot \Delta W_j^l h^l(x)$$
-            </div>
-          </div>
-
-          <div class="card card-blue">
-            <div class="card-title accent">🎯 Mục đích & Ý nghĩa Khoa học</div>
-            <div style="display: flex; flex-direction: column; gap: 14px; font-size: 0.9rem;">
-              <div>
-                <strong style="color: var(--primary-dark);">🎯 Mục đích giải quyết:</strong>
-                <p style="color: var(--text-secondary); margin-top: 4px; font-size: 0.87rem; line-height: 1.45;">
-                  Xóa bỏ hoàn toàn thao tác gộp trọng số tai hại (Weight Merging) của KeepLoRA, cho phép mỗi tác vụ giữ trọn vẹn adapter $(A_t, B_t)$ chuyên biệt của mình.
-                </p>
-              </div>
-
-              <div>
-                <strong style="color: var(--accent);">💡 Ý nghĩa Khoa học & Cải tiến của nhóm:</strong>
-                <ul class="key-points" style="margin-top: 6px; font-size: 0.85rem;">
-                  <li><strong>Zero-Parameter Routing:</strong> Định tuyến hoàn toàn dựa trên thống kê kích hoạt có sẵn, không tiêu tốn thêm bất kỳ tham số học nào.</li>
-                  <li><strong>Khả năng suy luận Zero-Hint:</strong> Nhận diện chính xác Task-ID khi kiểm thử với $K=1, T=0.1$ (hard-assignment), triệt tiêu 100% hiện tượng đè trọng số và rò rỉ biểu diễn.</li>
-                </ul>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- SLIDE 9: PILLAR 3 - BICYC & ISOMETRIC -->
-      <section class="slide">
-        <h1 class="slide-title">8. Trụ cột 3: Căn chỉnh BiCyc Hai Chiều & Ràng buộc Đẳng cự ($L_{iso}$)</h1>
-        <h2 class="slide-subtitle">Kế thừa: Xu & Krawczyk (ICLR 2026) • Đóng góp mới: Ràng buộc Đẳng cự bảo toàn hình học Bayes</h2>
-
-        <div class="grid-2">
-          <div class="card">
-            <div class="card-title">📌 Nguồn gốc & Cơ chế Toán học</div>
-            <p style="font-size: 0.84rem; color: var(--text-muted); margin-bottom: 6px;">
-              <strong>Kế thừa:</strong> Xu & Krawczyk, ICLR 2026 (BiCyc) + <strong>Đóng góp mới của nhóm:</strong> Isometric Regularizer.
-            </p>
-
-            <p style="font-size: 0.84rem; color: var(--text-muted);">1. Căn chỉnh hai chiều (BiCyc) & Chu trình khép kín:</p>
-            <div class="formula-box" style="font-size: 0.83rem;">
-              $$\mathcal{L}_{bi} = \|D(z_{new}) - \operatorname{sg}(z_{old})\|_2^2 + \|A(\operatorname{sg}(z_{old})) - \operatorname{sg}(z_{new})\|_2^2$$
-              $$\mathcal{L}_{cyc} = \|A(D(\operatorname{sg}(z_{new}))) - \operatorname{sg}(z_{new})\|_2^2 + \|D(A(\operatorname{sg}(z_{old}))) - \operatorname{sg}(z_{old})\|_2^2$$
-            </div>
-
-            <p style="font-size: 0.84rem; color: var(--text-muted);">2. Ràng buộc Đẳng cự Isometric ($L_{iso}$ - Sáng tạo mới):</p>
-            <div class="formula-box accent" style="font-size: 0.83rem;">
-              $$\mathcal{L}_{iso} = \mathbb{E}\left[ \left( \frac{\|A(z_{old})\|_2}{\|z_{old}\|_2 + \epsilon} - 1 \right)^2 \right] + \mathbb{E}\left[ 1 - \frac{z_{old}^\top A(z_{old})}{\|z_{old}\|_2 \|A(z_{old})\|_2 + \epsilon} \right]$$
-            </div>
-          </div>
-
-          <div class="card card-blue">
-            <div class="card-title accent">🎯 Mục đích & Ý nghĩa Khoa học</div>
-            <div style="display: flex; flex-direction: column; gap: 14px; font-size: 0.9rem;">
-              <div>
-                <strong style="color: var(--primary-dark);">🎯 Mục đích giải quyết:</strong>
-                <p style="color: var(--text-secondary); margin-top: 4px; font-size: 0.87rem; line-height: 1.45;">
-                  Xây dựng cầu nối khả nghịch giữa phân phối cũ và mới; đồng thời ép ánh xạ affine $A$ không làm co rút hoặc bùng nổ độ dài chuẩn khi truyền tải phân phối qua $T$ tác vụ.
-                </p>
-              </div>
-
-              <div>
-                <strong style="color: var(--accent);">💡 Ý nghĩa Khoa học & Sáng tạo của nhóm:</strong>
-                <ul class="key-points" style="margin-top: 6px; font-size: 0.85rem;">
-                  <li><strong>Chống sụp đổ chuẩn (Norm Stability):</strong> Thành phần thứ nhất của $\mathcal{L}_{iso}$ triệt tiêu nguy cơ trôi dạt độ dài đặc trưng qua chuỗi tích chập $A_T \circ \dots \circ A_1$.</li>
-                  <li><strong>Bảo toàn tính xác định dương của Covariance:</strong> Giữ ma trận hiệp phương sai Bayes $\Sigma'_c = W_A \Sigma_c W_A^\top$ luôn ổn định, tránh lỗi ma trận suy biến (Singular Matrix).</li>
-                </ul>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- SLIDE 10: PILLAR 4 - CHANNEL ADAPTIVE GATE -->
-      <section class="slide">
-        <h1 class="slide-title">9. Trụ cột 4: Cổng Chưng Cất Thích Ứng Theo Kênh (Gaussian-KL)</h1>
-        <h2 class="slide-subtitle">Đóng góp độc quyền của Nhóm • Lý thuyết thông tin giải quyết hoàn hảo Stability - Plasticity</h2>
-
-        <div class="grid-2">
-          <div class="card">
-            <div class="card-title">📌 Nguồn gốc & Cơ chế Toán học</div>
-            <p style="font-size: 0.84rem; color: var(--text-muted); margin-bottom: 6px;">
-              <strong>Đóng góp mới độc quyền:</strong> Nhóm tự thiết kế dựa trên Phân kỳ đối xứng Gaussian-KL (Information Theory).
-            </p>
-
-            <p style="font-size: 0.84rem; color: var(--text-muted);">1. Khoảng cách đối xứng Gaussian-KL trên từng kênh $i \in \{1, \dots, 768\}$:</p>
-            <div class="formula-box" style="font-size: 0.82rem;">
-              $$\delta_{t, i} = \frac{1}{2} \left[ \frac{\sigma_{o,i}^2 + (\mu_{o,i} - \mu_{n,i})^2}{\sigma_{n,i}^2} + \frac{\sigma_{n,i}^2 + (\mu_{n,i} - \mu_{o,i})^2}{\sigma_{o,i}^2} - 2 \right]$$
-            </div>
-
-            <p style="font-size: 0.84rem; color: var(--text-muted);">2. Vector trọng số thích ứng $\vec{\lambda}_t \in [\lambda_{min}, \lambda_{max}]^{768}$:</p>
-            <div class="formula-box" style="font-size: 0.82rem;">
-              $$\vec{\lambda}_{t, i} = \lambda_{min} + (\lambda_{max} - \lambda_{min}) \left( 1 - \exp\left( -\frac{\delta_{t, i}}{\tau} \right) \right)$$
-            </div>
-
-            <p style="font-size: 0.84rem; color: var(--text-muted);">3. Weighted Gated Distillation Loss:</p>
-            <div class="formula-box accent" style="font-size: 0.82rem;">
-              $$\mathcal{L}_{distill} = \frac{1}{B} \sum_{b=1}^B \sum_{i=1}^{768} \vec{\lambda}_{t, i} \cdot \left( D(z_{new, b})_i - z_{old, b, i} \right)^2$$
-            </div>
-          </div>
-
-          <div class="card card-blue">
-            <div class="card-title accent">🎯 Mục đích & Ý nghĩa Khoa học</div>
-            <div style="display: flex; flex-direction: column; gap: 14px; font-size: 0.9rem;">
-              <div>
-                <strong style="color: var(--primary-dark);">🎯 Mục đích giải quyết:</strong>
-                <p style="color: var(--text-secondary); margin-top: 4px; font-size: 0.87rem; line-height: 1.45;">
-                  Thay thế hệ số chưng cất vô hướng thô sơ bằng cơ chế tinh chỉnh mịn theo từng kênh đặc trưng của Vision Transformer.
-                </p>
-              </div>
-
-              <div>
-                <strong style="color: var(--accent);">💡 Ý nghĩa Khoa học & Điểm sáng:</strong>
-                <ul class="key-points" style="margin-top: 6px; font-size: 0.85rem;">
-                  <li><strong>Kênh ngữ nghĩa chung ($\delta_{t, i} \approx 0$):</strong> Phân kỳ thấp $\to \vec{\lambda}_{t, i} \to \lambda_{max}$, áp đặt lực cản tối đa để bảo vệ đặc trưng cũ (Bảo toàn <em>Stability</em>).</li>
-                  <li><strong>Kênh đặc thù tác vụ mới ($\delta_{t, i}$ lớn):</strong> Phân kỳ cao $\to \vec{\lambda}_{t, i} \to \lambda_{min}$, nới lỏng lực cản chưng cất để mô hình tự do tiếp thu kiến thức mới (Tăng cường <em>Plasticity</em>).</li>
-                </ul>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- SLIDE 11: GRADIENT ISOLATION & GAUSSIAN CLASSIFIER -->
-      <section class="slide">
-        <h1 class="slide-title">10. Cơ chế Phân Lập Gradient Hai Bộ Tối Ưu & Phân Loại Bayes</h1>
-        <h2 class="slide-subtitle">Two-Optimizer Gradient Isolation Engine kết hợp Mahalanobis Log-Likelihood</h2>
-
-        <div class="grid-2">
-          <div class="card">
-            <div class="card-title">📌 Nguồn gốc & Cơ chế Hai Bộ Tối Ưu Độc Lập</div>
-            <p style="font-size: 0.84rem; color: var(--text-muted); margin-bottom: 8px;">
-              <strong>Thiết kế của nhóm:</strong> Phân tách hai không gian tối ưu để tránh ô nhiễm gradient giữa bài toán phân loại và bài toán căn chỉnh.
-            </p>
-            
-            <div style="display: flex; flex-direction: column; gap: 10px; font-size: 0.86rem;">
-              <div style="background: #f8fafc; padding: 10px 14px; border-radius: 8px; border-left: 4px solid var(--primary);">
-                <strong style="color: var(--primary-dark);">Bước 1: Model Step (Optimizer 1 - AdamW)</strong>
-                <div class="formula-box" style="margin: 4px 0; font-size: 0.83rem;">
-                  $$\mathcal{L}_{model} = \mathcal{L}_{CE}(logits, y) + \lambda_{bi} \cdot \mathcal{L}_{distill}(\vec{\lambda})$$
+            <div style="display: flex; flex-direction: column; gap: 7px; margin-top: 8px;">
+              <div style="background: rgba(5, 150, 105, 0.07); border-left: 3px solid var(--accent); padding: 7px 10px; border-radius: 6px; font-size: 0.81rem; line-height: 1.42;">
+                <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 2px;">
+                  <span style="font-weight: 800; color: var(--accent); font-size: 0.76rem; background: var(--accent-light); padding: 1px 6px; border-radius: 4px; letter-spacing: 0.02em;">RÀNG BUỘC 1</span>
+                  <strong style="color: var(--text-main);">Exemplar-Free (0 raw images)</strong>
                 </div>
-                <p style="color: var(--text-muted); font-size: 0.82rem;">Cập nhật $B_t$ và Classification Head; đóng băng toàn bộ $A_t$ và các mạng $A, D$.</p>
-              </div>
-
-              <div style="background: #f8fafc; padding: 10px 14px; border-radius: 8px; border-left: 4px solid var(--accent);">
-                <strong style="color: var(--accent);">Bước 2: Alignment Step (Optimizer 2 - AdamW)</strong>
-                <div class="formula-box" style="margin: 4px 0; font-size: 0.83rem;">
-                  $$\mathcal{L}_{maps} = \lambda_{bi} \mathcal{L}_{bi} + \lambda_{cyc} \mathcal{L}_{cyc} + \lambda_{iso} \mathcal{L}_{iso}$$
+                <div style="color: var(--text-secondary);">
+                  Tiêu hủy sạch sẽ $\mathcal{D}_{&lt;t} = \emptyset$, tuân thủ tuyệt đối chuẩn bảo mật GDPR (Châu Âu) &amp; HIPAA (Y tế).
                 </div>
-                <p style="color: var(--text-muted); font-size: 0.82rem;">Đầu vào ngắt gradient hoàn toàn qua <code>z.detach()</code>. Chỉ cập nhật mạng $A$ và $D$.</p>
+              </div>
+
+              <div style="background: rgba(2, 132, 199, 0.07); border-left: 3px solid var(--primary); padding: 7px 10px; border-radius: 6px; font-size: 0.81rem; line-height: 1.42;">
+                <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 2px;">
+                  <span style="font-weight: 800; color: var(--primary-dark); font-size: 0.76rem; background: var(--primary-light); padding: 1px 6px; border-radius: 4px; letter-spacing: 0.02em;">RÀNG BUỘC 2</span>
+                  <strong style="color: var(--text-main);">Zero-Hint Testing</strong>
+                </div>
+                <div style="color: var(--text-secondary);">
+                  Khi suy luận, hoàn toàn <strong>không có Task-ID</strong>, mô hình phải tự quyết định adapter và lớp.
+                </div>
+              </div>
+
+              <div style="background: rgba(79, 70, 229, 0.07); border-left: 3px solid var(--secondary); padding: 7px 10px; border-radius: 6px; font-size: 0.81rem; line-height: 1.42;">
+                <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 2px;">
+                  <span style="font-weight: 800; color: var(--secondary); font-size: 0.76rem; background: var(--secondary-light); padding: 1px 6px; border-radius: 4px; letter-spacing: 0.02em;">RÀNG BUỘC 3</span>
+                  <strong style="color: var(--text-main);">Finite Memory</strong>
+                </div>
+                <div style="color: var(--text-secondary);">
+                  Chi phí tham số và ổ đĩa không bùng nổ theo số tác vụ $T$, vận hành bền vững trên Edge AI.
+                </div>
               </div>
             </div>
-          </div>
-
-          <div class="card card-blue">
-            <div class="card-title accent">🎯 Phân Loại Không Thiên Vị (Gaussian-Bayes)</div>
-            <p style="font-size: 0.84rem; color: var(--text-muted);">
-              1. Vận chuyển tham số thống kê cũ qua ánh xạ $A(z) = z W_A^\top + b_A$:
-            </p>
-            <div class="formula-box" style="font-size: 0.84rem;">
-              $$\mu'_c = \mu_c W_A^\top + b_A, \qquad \Sigma'_c = W_A \Sigma_c W_A^\top$$
-            </div>
-            <p style="font-size: 0.84rem; color: var(--text-muted);">
-              2. Phân loại kiểm thử Zero-Hint bằng khoảng cách Mahalanobis:
-            </p>
-            <div class="formula-box accent" style="font-size: 0.83rem;">
-              $$\hat{y} = \arg\max_{c \in \mathcal{C}_{seen}} \left( -\frac{1}{2} (z - \mu_c)^\top (\Sigma_c + \gamma I)^{-1} (z - \mu_c) - \frac{1}{2} \ln|\Sigma_c + \gamma I| \right)$$
-            </div>
-            <ul class="key-points" style="font-size: 0.83rem; margin-top: 8px;">
-              <li><strong>Mục đích & Ý nghĩa:</strong> Gradient của phép căn chỉnh hình học không làm méo mó bộ trích xuất đặc trưng; bộ phân loại Bayes không bị thiên vị sang các lớp mới xuất hiện.</li>
-            </ul>
           </div>
         </div>
       </section>
 
-      <!-- SLIDE 12: ENGINEERING PIPELINE & WORKFLOW -->
+      <!-- SLIDE 6: MASTER WORKFLOW OVERVIEW -->
       <section class="slide">
-        <h1 class="slide-title">11. Kiến Trúc Kỹ Thuật & Pipeline Huấn Luyện Thực Tế Của Nhóm</h1>
-        <h2 class="slide-subtitle">Hiện thực hóa từ thuật toán lý thuyết sang mã nguồn mô-đun hóa sẵn sàng triển khai</h2>
+        <h1 class="slide-title">5. Tổng Quan Luồng Hoạt Động: Vòng Đời Huấn Luyện 4 Giai Đoạn Khép Kín</h1>
+        <h2 class="slide-subtitle">Triết lý Biến dạng có kiểm soát (Controlled Diffeomorphism) thay thế dây xích cứng qua 4 mắt xích nhân - quả</h2>
 
-        <div class="grid-2">
-          <div class="card">
-            <div class="card-title">⚙️ Sơ đồ Luồng Thực Thi Mã Nguồn Dự Án</div>
-            <div style="display: flex; flex-direction: column; gap: 10px; font-size: 0.85rem;">
-              <div style="background: #f8fafc; padding: 10px 14px; border-radius: 8px; border-left: 4px solid var(--primary);">
-                <strong>1. Quản trị Tham số Tập trung (Hydra Config)</strong>
-                <p style="color: var(--text-muted); margin-top: 2px;">File <code>conf/experiment/keeplora_bicyc_8gb.yaml</code> quản lý toàn bộ cấu hình: Rank $r=8$, seed, learning rate, trọng số mất mát.</p>
+        <div style="display: flex; flex-direction: column; gap: 12px; height: 100%;">
+          <!-- Top 4-Stage Horizontal Flow -->
+          <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;">
+            <div class="card card-blue" style="padding: 12px; border-top: 4px solid var(--primary);">
+              <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
+                <span class="badge" style="font-size: 0.72rem;">GIAI ĐOẠN 1</span>
+                <span style="font-size: 0.75rem; font-weight: 700; color: var(--primary);">Bắt đầu Task t</span>
               </div>
-
-              <div style="background: #f8fafc; padding: 10px 14px; border-radius: 8px; border-left: 4px solid var(--accent);">
-                <strong>2. Task Loop Engine (<code>task_loop.py</code>)</strong>
-                <p style="color: var(--text-muted); margin-top: 2px;">Điều khiển chuỗi $T$ tác vụ tuần tự; kích hoạt Two-Optimizer Gradient Isolation và tính toán cổng Gaussian-KL trực tuyến.</p>
+              <strong style="font-size: 0.9rem; color: var(--primary-dark);">Phân Tách Không Gian Con</strong>
+              <p style="font-size: 0.78rem; color: var(--text-secondary); margin-top: 4px; line-height: 1.38;">
+                Chiếu gradient dư vào Null-Space: $Q_{t-1}^\top \hat{G}_t = \mathbf{0}$; Khởi tạo KeepLoRA bảo toàn hàm ($B_t^{(0)} = \Sigma_{1:r} V^\top, \Delta W_t^{(0)} = \mathbf{0}$).
+              </p>
+              <div style="margin-top: 6px; font-size: 0.72rem; color: var(--primary-dark); font-weight: 600;">
+                🎯 "Học trong vùng không gian trống"
               </div>
+            </div>
 
-              <div style="background: #f8fafc; padding: 10px 14px; border-radius: 8px; border-left: 4px solid var(--warning);">
-                <strong>3. Rolling Task Checkpoint (<code>checkpoint.py</code>)</strong>
-                <p style="color: var(--text-muted); margin-top: 2px;">Tự động xóa <code>task_{t-1}.pt</code> khi lưu xong <code>task_t.pt</code> $\to$ cố định 1 file duy nhất (~350MB), giải quyết 100% rủi ro tràn ổ cứng Kaggle/Colab.</p>
+            <div class="card card-highlight" style="padding: 12px; border-top: 4px solid var(--accent);">
+              <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
+                <span class="badge green" style="font-size: 0.72rem;">GIAI ĐOẠN 2</span>
+                <span style="font-size: 0.75rem; font-weight: 700; color: var(--accent);">Batch Loop</span>
               </div>
+              <strong style="font-size: 0.9rem; color: var(--accent);">Phân Lập Động Lực Học</strong>
+              <p style="font-size: 0.78rem; color: var(--text-secondary); margin-top: 4px; line-height: 1.38;">
+                Rào cản 2-Optimizer (Model Step vs Alignment Step); Cổng Gaussian-KL 768 kênh thích ứng ($\vec{\lambda}_{t,i}$); Ràng buộc đẳng cự $\mathcal{L}_{iso}$.
+              </p>
+              <div style="margin-top: 6px; font-size: 0.72rem; color: var(--accent); font-weight: 600;">
+                🛡️ "Rào chắn gradient đối kháng"
+              </div>
+            </div>
 
-              <div style="background: #f8fafc; padding: 10px 14px; border-radius: 8px; border-left: 4px solid var(--secondary);">
-                <strong>4. Zero-Hint Evaluator (<code>evaluation/metrics.py</code>)</strong>
-                <p style="color: var(--text-muted); margin-top: 2px;">Tự động tính toán ma trận nhầm lẫn $R_{t,j}$, Last Average Accuracy ($A_{T-1}$) và Backward Transfer ($F$).</p>
+            <div class="card" style="padding: 12px; border-top: 4px solid var(--warning); background: #fffbeb;">
+              <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
+                <span class="badge yellow" style="font-size: 0.72rem;">GIAI ĐOẠN 3</span>
+                <span style="font-size: 0.75rem; font-weight: 700; color: var(--warning);">Kết thúc Task t</span>
+              </div>
+              <strong style="font-size: 0.9rem; color: #b45309;">Vận Chuyển Thống Kê Bayes</strong>
+              <p style="font-size: 0.78rem; color: var(--text-secondary); margin-top: 4px; line-height: 1.38;">
+                Ước lượng $(\mu_c, \Sigma_c)$; Đẩy giải tích $\mu'_c = \mu_c W_A^\top + b_A$, $\Sigma'_c = W_A \Sigma_c W_A^\top$; Xóa $100\%$ ảnh thô; Rolling Checkpoint 350MB.
+              </p>
+              <div style="margin-top: 6px; font-size: 0.72rem; color: #b45309; font-weight: 600;">
+                💾 "Nhớ phân phối, 0 lưu ảnh"
+              </div>
+            </div>
+
+            <div class="card" style="padding: 12px; border-top: 4px solid var(--secondary); background: #faf5ff;">
+              <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
+                <span class="badge purple" style="font-size: 0.72rem;">GIAI ĐOẠN 4</span>
+                <span style="font-size: 0.75rem; font-weight: 700; color: var(--secondary);">Testing</span>
+              </div>
+              <strong style="font-size: 0.9rem; color: var(--secondary);">Suy Diễn Bayes Hai Cấp</strong>
+              <p style="font-size: 0.78rem; color: var(--text-secondary); margin-top: 4px; line-height: 1.38;">
+                Định tuyến PFD Router Cosine Top-1 cứng ($T=0.1$); Phân loại xác suất hậu nghiệm Mahalanobis đo độ phân kỳ elip khử thiên vị Recency Bias.
+              </p>
+              <div style="margin-top: 6px; font-size: 0.72rem; color: var(--secondary); font-weight: 600;">
+                ⚖️ "Zero-Hint, triệt tiêu Recency Bias"
               </div>
             </div>
           </div>
 
-          <div class="card card-highlight">
-            <div class="card-title accent">🛡️ Các Giải Pháp Kỹ Thuật Đảm Bảo Độ Bền Vững</div>
-            <ul class="key-points" style="font-size: 0.86rem; gap: 12px;">
+          <!-- Bottom Big Comparison / Rationale Card -->
+          <div class="card" style="padding: 12px 16px; flex: 1; display: flex; flex-direction: column; justify-content: space-around;">
+            <div class="card-title" style="font-size: 0.92rem; display: flex; justify-content: space-between; align-items: center;">
+              <div><span>💡</span> Triết Lý Khép Kín: Controlled Diffeomorphism &amp; Chuỗi Nhân - Quả Cốt Tử</div>
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; font-size: 0.83rem;">
+              <div style="background: #f8fafc; padding: 10px 12px; border-radius: 8px; border-left: 3px solid var(--primary);">
+                <strong style="color: var(--primary-dark);">Bản chất "Biến Dạng Có Kiểm Soát" (Controlled Diffeomorphism):</strong>
+                <p style="color: var(--text-secondary); margin-top: 4px; line-height: 1.42;">
+                  Thay vì kìm kẹp không gian bằng "sợi dây xích cứng" ($\|z_{new} - z_{old}\|^2 \to 0$), hệ thống cho phép không gian <strong>biến dạng trơn tru và khả nghịch</strong>: giữ vững các trục bất biến nhờ chiếu trực giao &amp; cổng KL, đồng thời bảo toàn thể tích qua ràng buộc đẳng cự $\mathcal{L}_{iso}$ ($\|\det(W_A)\| \approx 1 > 0$) để vận chuyển độ đo xác suất giải tích mà không cần ảnh mẫu.
+                </p>
+              </div>
+              <div style="background: #f8fafc; padding: 10px 12px; border-radius: 8px; border-left: 3px solid var(--accent);">
+                <strong style="color: var(--accent);">Chuỗi nhân - quả không thể tách rời:</strong>
+                <ul style="margin-left: 14px; margin-top: 4px; color: var(--text-secondary); line-height: 1.4;">
+                  <li><strong>Thiếu Phase 1:</strong> Gradient mới đè bẹp biểu diễn cũ ngay từ epoch 0.</li>
+                  <li><strong>Thiếu Phase 2:</strong> Gradient $\mathcal{L}_{CE}$ &amp; $\mathcal{L}_{bi}$ triệt tiêu lẫn nhau, mạng $A$ méo mó.</li>
+                  <li><strong>Thiếu Phase 3:</strong> Không thể phân loại lớp cũ khi không lưu ảnh ($0$ exemplars).</li>
+                  <li><strong>Thiếu Phase 4:</strong> Bị pha loãng biểu diễn và thiên vị nặng nề lớp mới (Recency Bias).</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SLIDE 7: PHASE 1 - TASK INITIALIZATION & NULL-SPACE SVD -->
+      <section class="slide">
+        <h1 class="slide-title">6. Giai Đoạn 1: Khởi Tạo Tác Vụ Mới &amp; Chiếu Null-Space SVD</h1>
+        <h2 class="slide-subtitle">Kế thừa: Luo et al. (KeepLoRA - ICLR 2026) • Phân tách không gian con trực giao &amp; Khởi tạo bảo toàn hàm</h2>
+
+        <div class="grid-diagram">
+          <div class="card" style="padding: 13px 15px; display: flex; flex-direction: column; justify-content: space-between; gap: 8px;">
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+              <div class="card-title" style="font-size: 0.95rem; margin-bottom: 1px;">
+                📌 1. Phân Tách Không Gian Con &amp; Chiếu Null-Space
+              </div>
+
+              <!-- Box 1: Null space projection -->
+              <div style="background: #f8fafc; border-left: 3px solid var(--primary); padding: 7px 11px; border-radius: 7px;">
+                <div style="font-size: 0.78rem; font-weight: 700; color: var(--primary-dark); margin-bottom: 3px;">
+                  • Cơ sở trực chuẩn bảo vệ ký ức cũ:
+                </div>
+                <div style="font-size: 0.81rem; margin-bottom: 5px; padding: 4px 8px; background: #ffffff; border-radius: 5px; border: 1px solid #e2e8f0;">
+                  $Q_{t-1} = \operatorname{QR}([W_p, M_{t-1}]).Q \in \mathbb{R}^{d_{in} \times (p+m)} \quad (Q_{t-1}^\top Q_{t-1} = I)$
+                </div>
+
+                <div style="font-size: 0.78rem; font-weight: 700; color: var(--warning); margin-bottom: 3px;">
+                  • Chiếu gradient tích lũy vào không gian hạch trực giao:
+                </div>
+                <div style="font-size: 0.81rem; padding: 4px 8px; background: #ffffff; border-radius: 5px; border: 1px solid #e2e8f0;">
+                  $\hat{G}_t = (I - Q_{t-1} Q_{t-1}^\top) G_t \implies Q_{t-1}^\top \hat{G}_t = \mathbf{0} \quad (\hat{G}_t \perp Q_{t-1})$
+                </div>
+              </div>
+
+              <div class="card-title" style="font-size: 0.95rem; margin-bottom: 1px;">
+                📌 2. Phân Rã SVD &amp; Khởi Tạo Bảo Toàn Hàm
+              </div>
+
+              <!-- Box 2: KeepLoRA Init & Function Preserving -->
+              <div style="background: #f0fdf4; border-left: 3px solid var(--accent); padding: 7px 11px; border-radius: 7px;">
+                <div style="font-size: 0.78rem; font-weight: 700; color: var(--accent); margin-bottom: 3px;">
+                  • Phân rã phổ SVD &amp; Khởi tạo tham số KeepLoRA:
+                </div>
+                <div style="font-size: 0.81rem; margin-bottom: 5px; padding: 4px 8px; background: #ffffff; border-radius: 5px; border: 1px solid #bbf7d0;">
+                  $\hat{G}_t = U \Sigma V^\top \implies A_t = U_{:, 1:r} \ \text{(Đóng băng ❄️)}, \quad B_t^{(0)} = \Sigma_{1:r} V_{:, 1:r}^\top \ \text{(Học 🔥)}$
+                </div>
+
+                <div style="font-size: 0.78rem; font-weight: 700; color: #166534; margin-bottom: 3px;">
+                  • Bảo toàn hàm tại Epoch 0 (Zero Initial Perturbation):
+                </div>
+                <div style="font-size: 0.81rem; padding: 4px 8px; background: #ffffff; border-radius: 5px; border: 1px solid #bbf7d0;">
+                  $\Delta W_t^{(0)} = \frac{\alpha}{r} A_t (B_t^{(0)} - B_t^{(0)}) = \mathbf{0} \implies f_t^{(0)}(x) \equiv f_{t-1}(x)$
+                </div>
+              </div>
+            </div>
+
+            <!-- Callout summary -->
+            <div style="background: #f0f9ff; padding: 7px 10px; border-radius: 7px; border-left: 3px solid var(--primary); font-size: 0.77rem; line-height: 1.4;">
+              <strong style="color: var(--primary-dark);">🎯 Bản chất cốt tử:</strong> Gradient mới trực giao $100\%$ với tri thức cũ ($Q_{t-1}^\top \hat{G}_t = \mathbf{0}$). Mô hình bắt đầu học task mới mà không gây bất kỳ sốc tham số ban đầu nào lên mạng cũ.
+            </div>
+          </div>
+
+          <div class="diagram-card" onclick="openDiagramModal('figures/flow_phase1_init.svg', 'Sơ đồ Giai đoạn 1: Chiếu Residual SVD Trực Giao &amp; Khởi Tạo KeepLoRA')">
+            <div class="diagram-badge-bar">
+              <span class="zoom-hint-btn">🔍 Bấm để phóng to</span>
+            </div>
+            <img src="figures/flow_phase1_init.svg" alt="Sơ đồ Giai đoạn 1: Khởi tạo tác vụ mới">
+            <div style="font-size: 0.73rem; color: var(--text-muted); margin-top: 3px; font-style: italic;">
+              Hình 1: Luồng xử lý Giai đoạn 1 – Chiếu Residual SVD Trực giao và Khởi tạo KeepLoRA (Click để phóng to)
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SLIDE 8: PHASE 2 - EPOCH LOOP & TWO-OPTIMIZER BARRIER -->
+      <section class="slide">
+        <h1 class="slide-title">7. Giai Đoạn 2: Huấn Luyện Batch &amp; Phân Lập Hai Bộ Tối Ưu</h1>
+        <h2 class="slide-subtitle">Two-Optimizer Barrier, Cổng Thích Ứng Gaussian-KL (768 Kênh) và Ràng Buộc Đẳng Cự ($L_{iso}$)</h2>
+
+        <div class="grid-diagram">
+          <div class="card" style="padding: 13px 15px; display: flex; flex-direction: column; justify-content: space-between; gap: 7px;">
+            <div style="display: flex; flex-direction: column; gap: 7px;">
+              <div class="card-title" style="font-size: 0.95rem; margin-bottom: 1px;">
+                📌 Rào Cản Phân Lập Hai Bộ Tối Ưu (Two-Optimizer Barrier)
+              </div>
+
+              <!-- Box 1: Model Step -->
+              <div style="background: #f0f9ff; padding: 7px 10px; border-radius: 7px; border-left: 3px solid var(--primary);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 3px;">
+                  <strong style="color: var(--primary-dark); font-size: 0.81rem;">Bước 1: Model Step (Optimizer 1)</strong>
+                  <span style="font-size: 0.71rem; background: #e0f2fe; color: var(--primary-dark); padding: 1px 5px; border-radius: 4px; font-weight: 600;">Cập nhật Bᵗ &amp; Head</span>
+                </div>
+                <div style="padding: 4px 8px; background: #ffffff; border-radius: 5px; border: 1px solid #bae6fd; font-size: 0.8rem; margin-bottom: 3px;">
+                  $\mathcal{L}_{model} = \mathcal{L}_{CE} + \lambda_{bi} \sum_{i=1}^{768} \lambda_{t,i} \cdot \|D(z_{new})_i - z_{old,i}\|^2$
+                </div>
+                <div style="font-size: 0.73rem; color: var(--text-muted);">
+                  ✓ Dùng mạng chiếu lùi $D$ làm thước đo chuẩn cố định (khóa $A_t, A, D$).
+                </div>
+              </div>
+
+              <!-- Box 2: Alignment Step -->
+              <div style="background: #f0fdf4; padding: 7px 10px; border-radius: 7px; border-left: 3px solid var(--accent);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 3px;">
+                  <strong style="color: var(--accent); font-size: 0.81rem;">Bước 2: Alignment Step (Optimizer 2)</strong>
+                  <span style="font-size: 0.71rem; background: #dcfce7; color: var(--accent); padding: 1px 5px; border-radius: 4px; font-weight: 600;">Cập nhật Mạng A &amp; D</span>
+                </div>
+                <div style="padding: 4px 8px; background: #ffffff; border-radius: 5px; border: 1px solid #bbf7d0; font-size: 0.8rem; margin-bottom: 3px;">
+                  $\mathcal{L}_{maps} = \lambda_{bi}\|A(z_{old}) - z_{new}\|^2 + \lambda_{cyc}\mathcal{L}_{cyc} + \lambda_{iso}\mathcal{L}_{iso}$
+                </div>
+                <div style="font-size: 0.73rem; color: var(--text-muted);">
+                  ✓ Ngắt gradient đầu vào ($z.\text{detach}()$); tinh chỉnh thước đo $A, D$ trên đặc trưng đứng yên.
+                </div>
+              </div>
+
+              <!-- Box 3: Cổng KL & L_iso -->
+              <div style="background: #faf5ff; padding: 7px 10px; border-radius: 7px; border-left: 3px solid var(--secondary);">
+                <strong style="color: var(--secondary); font-size: 0.81rem; display: block; margin-bottom: 3px;">
+                  Cổng Thích Ứng 768 Kênh &amp; Ràng Buộc Đẳng Cự ($L_{iso}$)
+                </strong>
+                <div style="padding: 4px 8px; background: #ffffff; border-radius: 5px; border: 1px solid #e9d5ff; font-size: 0.77rem; display: flex; flex-direction: column; gap: 3px;">
+                  <div>• <em>Trọng số kênh:</em> $\lambda_{t,i} = \lambda_{min} + \Delta\lambda(1 - e^{-\delta_{t,i}/\tau}) \quad (\delta_{t,i} = \text{KL}_{sym})$</div>
+                  <div>
+                  • <em>Đẳng cự:</em>
+                  $\mathcal{L}_{iso}
+                  = \left(\frac{\|A(z)\|}{\|z\|} - 1\right)^2
+                  + \left(1 - \cos(A(z), z)\right)$
+                  $\implies |\det(W_A)| \approx 1$
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Callout -->
+            <div style="background: #f8fafc; padding: 7px 10px; border-radius: 7px; border-left: 3px solid var(--accent); font-size: 0.76rem; line-height: 1.38;">
+              <strong>💡 Điểm sáng lý thuyết:</strong> Tách 2 optimizer triệt tiêu $100\%$ xung đột gradient $(\nabla \mathcal{L}_{CE} \cdot \nabla \mathcal{L}_{bi} &lt; 0)$; $\mathcal{L}_{iso}$ bảo toàn thể tích, chống sụp đổ ma trận $(|\Sigma| \to 0)$.
+            </div>
+          </div>
+
+          <div class="diagram-card" onclick="openDiagramModal('figures/flow_phase2_training.svg', 'Sơ đồ Giai đoạn 2: Huấn Luyện Batch &amp; Rào Cản Phân Lập Hai Optimizer')">
+            <div class="diagram-badge-bar">
+              <span class="zoom-hint-btn">🔍 Bấm để phóng to</span>
+            </div>
+            <img src="figures/flow_phase2_training.svg" alt="Sơ đồ Giai đoạn 2: Huấn luyện 2 bộ tối ưu">
+            <div style="font-size: 0.73rem; color: var(--text-muted); margin-top: 3px; font-style: italic;">
+              Hình 2: Luồng xử lý Giai đoạn 2 – Rào cản Phân lập Gradient 2 Optimizer &amp; Cổng Gaussian-KL (Click để phóng to)
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SLIDE 9: PHASE 3 - POST-TASK CONSOLIDATION & BAYES TRANSPORT -->
+      <section class="slide">
+        <h1 class="slide-title">8. Giai Đoạn 3: Hậu Xử Lý Kết Thúc Task &amp; Vận Chuyển Bayes</h1>
+        <h2 class="slide-subtitle">Vận chuyển tham số Gauss không lưu ảnh cũ, Cập nhật Prototype PFD &amp; Rolling Checkpoint 350MB</h2>
+
+        <div class="grid-diagram">
+          <div class="card" style="padding: 13px 15px; display: flex; flex-direction: column; justify-content: space-between; gap: 8px;">
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+              <div class="card-title" style="font-size: 0.95rem; margin-bottom: 1px;">
+                📌 Thống Kê Tham Số &amp; Vận Chuyển Bayes Không Mẫu
+              </div>
+
+              <!-- Box 1: New class parameter estimation -->
+              <div style="background: #f0f9ff; padding: 7px 11px; border-radius: 7px; border-left: 3px solid var(--primary);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 3px;">
+                  <strong style="color: var(--primary-dark); font-size: 0.81rem;">1. Thống Kê Lớp Mới &amp; Tiêu Hủy Ảnh Thô (GDPR)</strong>
+                  <span style="font-size: 0.71rem; background: #fee2e2; color: #b91c1c; padding: 1px 5px; border-radius: 4px; font-weight: 700;">Dᵗ = ∅ (0 raw)</span>
+                </div>
+                <div style="padding: 4px 8px; background: #ffffff; border-radius: 5px; border: 1px solid #bae6fd; font-size: 0.81rem; margin-bottom: 3px;">
+                  $\mu_c = \mathbb{E}_{x \in \mathcal{D}_t, y=c}[z] \in \mathbb{R}^{768}, \qquad \Sigma_c = \operatorname{Cov}(z) \in \mathbb{R}^{768 \times 768}$
+                </div>
+                <div style="font-size: 0.73rem; color: var(--text-muted);">
+                  ✓ Lưu $(\mu_c, \Sigma_c)$ chỉ tốn ~6KB/lớp (tiết kiệm 99.9% so với 150KB/ảnh). Xóa sạch $\mathcal{D}_t$.
+                </div>
+              </div>
+
+              <!-- Box 2: Analytic Bayes transport -->
+              <div style="background: #f0fdf4; padding: 7px 11px; border-radius: 7px; border-left: 3px solid var(--accent);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 3px;">
+                  <strong style="color: var(--accent); font-size: 0.81rem;">2. Vận Chuyển Độ Đo Bayes Giải Tích (Analytic Push-Forward)</strong>
+                  <span style="font-size: 0.71rem; background: #dcfce7; color: var(--accent); padding: 1px 5px; border-radius: 4px; font-weight: 600;">Mọi lớp cũ c &lt; Cᵗ</span>
+                </div>
+                <div style="padding: 4px 8px; background: #ffffff; border-radius: 5px; border: 1px solid #bbf7d0; font-size: 0.81rem; margin-bottom: 3px;">
+                  $\mu'_c = \mu_c W_A^\top + b_A \in \mathbb{R}^{768}, \qquad \Sigma'_c = W_A \Sigma_c W_A^\top \in \mathbb{R}^{768 \times 768}$
+                </div>
+                <div style="font-size: 0.73rem; color: var(--text-muted);">
+                  ✓ Đẩy giải tích tức thì sang tọa độ mới, 0 cần sampling hay sinh ảnh ảo; $\mathcal{L}_{iso}$ giữ $|\Sigma'| > 0$.
+                </div>
+              </div>
+
+              <!-- Box 3: Prototype & Rolling Checkpoint -->
+              <div style="background: #fffbeb; padding: 7px 11px; border-radius: 7px; border-left: 3px solid var(--warning);">
+                <strong style="color: #b45309; font-size: 0.81rem; display: block; margin-bottom: 3px;">
+                  3. Prototype Định Tuyến PFD &amp; Động Cơ Rolling Checkpoint
+                </strong>
+                <div style="padding: 4px 8px; background: #ffffff; border-radius: 5px; border: 1px solid #fde68a; font-size: 0.77rem; display: flex; flex-direction: column; gap: 3px;">
+                  <div>• <em>Prototype:</em> $\mathcal{D}_t^l = \mathbb{E}_{x \sim \mathcal{D}_t}[W^l h^l(x)] \in \mathbb{R}^d \quad (l \in \{3, 6, 9, 12\})$</div>
+                  <div>• <em>Rolling Checkpoint:</em> Lưu `task_t.pt` (~350MB) ➔ Tự động xóa `task_{t-1}.pt`. Cố định 350MB đĩa.</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Callout -->
+            <div style="background: #fffbeb; padding: 7px 10px; border-radius: 7px; border-left: 3px solid var(--warning); font-size: 0.76rem; line-height: 1.38;">
+              <strong style="color: #b45309;">🎯 Ý nghĩa cốt tử:</strong> Phân phối cũ luôn được đồng bộ công bằng mà không cần lưu lại bất kỳ ảnh cũ nào (tuân thủ GDPR); ổ cứng khóa cố định 350MB chống tràn đĩa 100%.
+            </div>
+          </div>
+
+          <div class="diagram-card" onclick="openDiagramModal('figures/flow_phase3_post_task.svg', 'Sơ đồ Giai đoạn 3: Vận Chuyển Tham Số Bayes &amp; Rolling Checkpoint')">
+            <div class="diagram-badge-bar">
+              <span class="zoom-hint-btn">🔍 Bấm để phóng to</span>
+            </div>
+            <img src="figures/flow_phase3_post_task.svg" alt="Sơ đồ Giai đoạn 3: Hậu xử lý kết thúc task">
+            <div style="font-size: 0.73rem; color: var(--text-muted); margin-top: 3px; font-style: italic;">
+              Hình 3: Luồng xử lý Giai đoạn 3 – Vận chuyển Tham số Bayes &amp; Rolling Checkpoint (Click để phóng to)
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SLIDE 10: PHASE 4 - ZERO-HINT INFERENCE & MAHALANOBIS -->
+      <section class="slide">
+        <h1 class="slide-title">9. Giai Đoạn 4: Kiểm Thử &amp; Suy Luận Không Gợi Ý (Zero-Hint)</h1>
+        <h2 class="slide-subtitle">Định tuyến Đa Adapter PFD Router Cosine Top-1 kết hợp Phân loại Xác suất Hậu nghiệm Mahalanobis</h2>
+
+        <div class="grid-diagram">
+          <div class="card" style="padding: 13px 15px; display: flex; flex-direction: column; justify-content: space-between; gap: 8px;">
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+              <div class="card-title" style="font-size: 0.95rem; margin-bottom: 1px;">
+                📌 Kiến Trúc Ra Quyết Định Hai Cấp Triệt Tiêu Thiên Vị
+              </div>
+
+              <!-- Tier 1: Router -->
+              <div style="background: #fffbeb; padding: 7px 11px; border-radius: 7px; border-left: 3px solid var(--warning);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 3px;">
+                  <strong style="color: var(--warning); font-size: 0.81rem;">Cấp 1: PFD Cosine Router (Định Tuyến Adapter)</strong>
+                  <span style="font-size: 0.71rem; background: #fef3c7; color: #b45309; padding: 1px 5px; border-radius: 4px; font-weight: 700;">Hard Top-1</span>
+                </div>
+                <div style="padding: 4px 8px; background: #ffffff; border-radius: 5px; border: 1px solid #fde68a; font-size: 0.79rem; margin-bottom: 3px;">
+                  $w_j = \operatorname{Softmax}\left(\frac{\cos(q^l, \mathcal{D}_j^l)}{T}\right) \quad (T=0.1) \qquad \implies \quad j^* = \arg\max_j w_j$
+                  $z = W_0 h(x_{\text{test}}) + \Delta W_{j^*} h(x_{\text{test}})$
+                </div>
+                <div style="font-size: 0.73rem; color: var(--text-muted);">
+                  ✓ Hard Top-1 kích hoạt đúng 1 adapter chuyên biệt, triệt tiêu 100% pha loãng biểu diễn.
+                </div>
+              </div>
+
+              <!-- Tier 2: Bayes Mahalanobis -->
+              <div style="background: #f0fdf4; padding: 7px 11px; border-radius: 7px; border-left: 3px solid var(--accent);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 3px;">
+                  <strong style="color: var(--accent); font-size: 0.81rem;">Cấp 2: Phân Loại Bayes Mahalanobis</strong>
+                  <span style="font-size: 0.71rem; background: #dcfce7; color: var(--accent); padding: 1px 5px; border-radius: 4px; font-weight: 700;">Khử Recency Bias</span>
+                </div>
+                <div style="padding: 4px 8px; background: #ffffff; border-radius: 5px; border: 1px solid #bbf7d0; font-size: 0.78rem; margin-bottom: 3px;">
+                  $S(z, c) = -\frac{1}{2}(z - \mu_c)^\top (\Sigma_c + \gamma I)^{-1}(z - \mu_c) - \frac{1}{2}\ln|\Sigma_c + \gamma I|$
+                  $\hat{y} = \arg\max_{c \in \mathcal{C}_{seen}} S(z, c)$
+                </div>
+                <div style="font-size: 0.73rem; color: var(--text-muted);">
+                  ✓ Chuẩn hóa phương sai elip, công bằng tuyệt đối cho mọi lớp cũ &amp; mới, triệt tiêu thiên vị.
+                </div>
+              </div>
+            </div>
+
+            <!-- Footer metric summary -->
+            <div style="font-size: 0.76rem; color: var(--text-secondary); line-height: 1.38; background: #f8fafc; padding: 7px 10px; border-radius: 7px; border-left: 3px solid var(--primary);">
+              <strong>📊 Hệ thống chỉ số chuẩn:</strong> Ma trận $R_{i,j}$, Last Average Accuracy $A_{T-1} = \frac{1}{T}\sum_{j=0}^{T-1} R_{T-1,j}$, và Forgetting $F_{T-1}$.
+            </div>
+          </div>
+
+          <div class="diagram-card" onclick="openDiagramModal('figures/flow_phase4_inference.svg', 'Sơ đồ Giai đoạn 4: Định Tuyến PFD Cosine Top-1 &amp; Phân Loại Bayes Mahalanobis')">
+            <div class="diagram-badge-bar">
+              <span class="zoom-hint-btn">🔍 Bấm để phóng to</span>
+            </div>
+            <img src="figures/flow_phase4_inference.svg" alt="Sơ đồ Giai đoạn 4: Kiểm thử suy luận không gợi ý">
+            <div style="font-size: 0.73rem; color: var(--text-muted); margin-top: 3px; font-style: italic;">
+              Hình 4: Luồng xử lý Giai đoạn 4 – Định tuyến PFD Top-1 &amp; Phân loại Bayes Mahalanobis (Click để phóng to)
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SLIDE 11: ENGINEERING PIPELINE & CODE MAP -->
+      <section class="slide">
+        <h1 class="slide-title">10. Kiến Trúc Kỹ Thuật & Bảng Ánh Xạ Mã Nguồn Trong Codebase</h1>
+        <h2 class="slide-subtitle">Hiện thực hóa từ giải thuật lý thuyết sang mã nguồn PyTorch mô-đun hóa sẵn sàng triển khai</h2>
+
+        <div class="grid-2" style="align-items: stretch;">
+          <div class="card" style="padding: 14px; display: flex; flex-direction: column; justify-content: space-between;">
+            <div class="card-title">⚙️ Điểm Sáng Kỹ Thuật Dự Án</div>
+            <ul class="key-points" style="font-size: 0.83rem; gap: 9px;">
               <li>
-                <strong>Cơ chế Resume Cứu Hộ Khi Mất Kết Nối:</strong>
-                Tự động phát hiện checkpoint gần nhất và tiếp tục huấn luyện ngay lập tức mà không làm sai lệch thống kê PFD router hay lịch sử SVD.
+                <strong>Quản trị Cấu hình Tập trung:</strong> Toàn bộ siêu tham số (Rank $r=8$, $\lambda_{bi}, \lambda_{cyc}, \lambda_{iso}$, nhiệt độ $\tau$) cấu hình qua <code>conf/experiment/keeplora_bicyc_8gb.yaml</code>.
               </li>
               <li>
-                <strong>Tương thích Phần cứng Linh hoạt (Colab & Kaggle):</strong>
-                Tích hợp Mixed Precision (AMP fp16) và Gradient Accumulation, giúp chạy an toàn tuyệt đối trên GPU 8GB VRAM (chỉ chiếm 5.2GB).
+                <strong>Tự động Phục hồi (Auto-Resume):</strong> Nhận diện checkpoint gần nhất để tiếp tục train nếu cloud (Kaggle/Colab) bị ngắt kết nối giữa chừng.
               </li>
               <li>
-                <strong>Bảo toàn Tính Tái Lập (Reproducibility):</strong>
-                Cố định toàn bộ hạt giống sinh ngẫu nhiên (Seeds 1993/2024 cho PyTorch, CuDNN, NumPy), đảm bảo mọi kết quả thực nghiệm hoàn toàn có thể kiểm chứng độc lập.
+                <strong>Tối ưu Tài nguyên Biên:</strong> Sử dụng Mixed Precision (AMP fp16), VRAM đỉnh chỉ 5.2GB (chạy an toàn trên GPU 8GB phổ thông).
+              </li>
+              <li>
+                <strong>Tính Tái Lập Tuyệt Đối (Reproducibility):</strong> Cố định toàn bộ hạt giống sinh ngẫu nhiên (Seeds 1993, 2024, 42) cho PyTorch, CuDNN, NumPy.
               </li>
             </ul>
+            <div style="background: #f8fafc; padding: 8px 12px; border-radius: 8px; border-left: 3px solid var(--accent); font-size: 0.8rem;">
+              <strong>Dung lượng Checkpoint:</strong> Cố định 1 file <code>task_{t}.pt</code> (~350MB), xóa ngay <code>task_{t-1}.pt</code>.
+            </div>
+          </div>
+
+          <div class="card" style="padding: 14px;">
+            <div class="card-title accent">📂 Bảng Ánh Xạ Mã Nguồn Trực Tiếp</div>
+            <table class="data-table" style="font-size: 0.8rem; margin-top: 4px;">
+              <thead>
+                <tr>
+                  <th>Khái Niệm Lý Thuyết</th>
+                  <th>File Cài Đặt Trong <code>src/</code></th>
+                  <th>Hàm / Lớp Xử Lý</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>Phase 1: Null-Space SVD</strong></td>
+                  <td><code>models/adapters/keeplora.py</code></td>
+                  <td><code>project_nullspace_svd()</code></td>
+                </tr>
+                <tr>
+                  <td><strong>Phase 2: 2-Optimizer Barrier</strong></td>
+                  <td><code>engine/keeplora_trainer.py</code></td>
+                  <td><code>train_epoch_two_optimizers()</code></td>
+                </tr>
+                <tr>
+                  <td><strong>Phase 2: Cổng Gaussian-KL</strong></td>
+                  <td><code>models/alignment/distribution.py</code></td>
+                  <td><code>GaussianKLGate.compute_weights()</code></td>
+                </tr>
+                <tr>
+                  <td><strong>Phase 2: Mất Mát Đẳng Cự $L_{iso}$</strong></td>
+                  <td><code>models/alignment/bicyc.py</code></td>
+                  <td><code>IsometricRegularizer.forward()</code></td>
+                </tr>
+                <tr>
+                  <td><strong>Phase 3: Vận Chuyển Bayes</strong></td>
+                  <td><code>models/classifier.py</code></td>
+                  <td><code>transport_classes()</code></td>
+                </tr>
+                <tr>
+                  <td><strong>Phase 3: Rolling Checkpoint</strong></td>
+                  <td><code>engine/task_loop.py</code></td>
+                  <td><code>cleanup_previous_checkpoints()</code></td>
+                </tr>
+                <tr>
+                  <td><strong>Phase 4: Zero-Hint Router</strong></td>
+                  <td><code>models/adapters/routing.py</code></td>
+                  <td><code>PFDRouter.route_and_forward()</code></td>
+                </tr>
+                <tr>
+                  <td><strong>Phase 4: Mahalanobis Bayes</strong></td>
+                  <td><code>models/classifier.py</code></td>
+                  <td><code>predict_mahalanobis()</code></td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </div>
       </section>
 
       <!-- SLIDE 13: EXPERIMENTAL SETUP & METRICS -->
       <section class="slide">
-        <h1 class="slide-title">12. Thiết kế Thực nghiệm & Tiêu chuẩn Đánh giá</h1>
+        <h1 class="slide-title">11. Thiết kế Thực nghiệm & Tiêu chuẩn Đánh giá</h1>
         <h2 class="slide-subtitle">Benchmark chuẩn hóa CIFAR-100 (10 Tasks) & Chỉ số đo lường học thuật</h2>
 
         <div class="grid-2">
@@ -1349,7 +1543,7 @@
 
       <!-- SLIDE 14: BENCHMARK COMPARISON -->
       <section class="slide">
-        <h1 class="slide-title">13. Kết quả Đối sánh với các Phương pháp Tiên tiến (SOTA)</h1>
+        <h1 class="slide-title">12. Kết quả Đối sánh với các Phương pháp Tiên tiến (SOTA)</h1>
         <h2 class="slide-subtitle">So sánh tổng thể trên benchmark CIFAR-100 (10 Tasks, Exemplar-Free)</h2>
 
         <div class="card">
@@ -1431,7 +1625,7 @@
 
       <!-- SLIDE 15: ACCURACY HEATMAP VISUALIZATION -->
       <section class="slide">
-        <h1 class="slide-title">14. Phân tích Số liệu: Ma trận Độ chính xác Tác vụ ($R_{i,j}$)</h1>
+        <h1 class="slide-title">13. Phân tích Số liệu: Ma trận Độ chính xác Tác vụ ($R_{i,j}$)</h1>
         <h2 class="slide-subtitle">Quan sát sự bền vững của tri thức cũ qua thời gian huấn luyện</h2>
 
         <div class="grid-2" style="align-items: center;">
@@ -1466,7 +1660,7 @@
 
       <!-- SLIDE 16: TRAINING DYNAMICS & FORGETTING CURVES -->
       <section class="slide">
-        <h1 class="slide-title">15. Phân tích Số liệu: Động thái Quên & Trọng số Định tuyến</h1>
+        <h1 class="slide-title">14. Phân tích Số liệu: Động thái Quên & Trọng số Định tuyến</h1>
         <h2 class="slide-subtitle">Trực quan hóa đường cong Catastrophic Forgetting và độ hội tụ cổng thích ứng</h2>
 
         <div class="grid-2" style="align-items: center;">
@@ -1503,7 +1697,7 @@
 
       <!-- SLIDE 17: IN-DEPTH ABLATION STUDY -->
       <section class="slide">
-        <h1 class="slide-title">16. Nghiên cứu Triệt tiêu Thành phần Toàn diện (Ablation Study)</h1>
+        <h1 class="slide-title">15. Nghiên cứu Triệt tiêu Thành phần Toàn diện (Ablation Study)</h1>
         <h2 class="slide-subtitle">Đo lường định lượng vai trò độc lập của từng đề xuất lý thuyết (A1 $\to$ A5)</h2>
 
         <div class="card">
@@ -1568,7 +1762,7 @@
 
       <!-- SLIDE 18: COMPUTATIONAL & MEMORY EFFICIENCY -->
       <section class="slide">
-        <h1 class="slide-title">17. Đánh giá Hiệu quả Tính toán & Chi phí Bộ nhớ</h1>
+        <h1 class="slide-title">16. Đánh giá Hiệu quả Tính toán & Chi phí Bộ nhớ</h1>
         <h2 class="slide-subtitle">Khả thi khi triển khai trên các thiết bị tài nguyên giới hạn (Kaggle/Colab)</h2>
 
         <div class="grid-2">
@@ -1605,51 +1799,66 @@
         </div>
       </section>
 
-      <!-- SLIDE 19: FUTURE WORK 3-PHASE ROADMAP -->
+      <!-- SLIDE 19: CITATIONS & ROADMAP -->
       <section class="slide">
-        <h1 class="slide-title">18. Định Hướng Cải Thiện & Lộ Trình Nghiên Cứu 3 Giai Đoạn</h1>
-        <h2 class="slide-subtitle">Kế hoạch hành động cụ thể từ hoàn thiện học thuật đến triển khai công nghiệp thực tế</h2>
+        <h1 class="slide-title">17. Danh Mục Tài Liệu Tham Khảo Trọng Tâm & Lộ Trình Phát Triển</h1>
+        <h2 class="slide-subtitle">Các công trình học thuật nền tảng (ICLR, ICML, CVPR, NeurIPS) và kế hoạch 3 giai đoạn</h2>
 
-        <div class="grid-3">
-          <div class="card card-highlight">
-            <div class="card-title accent">🟢 Giai đoạn 1: Hoàn thiện NCKH (1 - 3 Tháng)</div>
-            <p style="font-size: 0.85rem; color: var(--text-secondary); line-height: 1.45;">
-              Tập trung đóng gói toàn diện kết quả thực nghiệm và công bố học thuật:
-            </p>
-            <ul class="key-points" style="font-size: 0.83rem; margin-top: 6px;">
-              <li><strong>Full Benchmark:</strong> Hoàn thành 10 & 20 tasks trên CIFAR-100 và ImageNet-R với nhiều hạt giống (seeds 1993, 2024, 42).</li>
-              <li><strong>Công bố bài báo khoa học:</strong> Soạn thảo bản thảo nộp hội nghị quốc tế uy tín (CVPR/ECCV workshop hoặc IEEE Access).</li>
-              <li><strong>Mã nguồn mở:</strong> Hoàn thiện kho mã nguồn GitHub kèm tài liệu và notebook 1-click cho cộng đồng.</li>
+        <div class="grid-2" style="align-items: stretch; gap: 16px;">
+          <!-- Left: Academic Citations -->
+          <div class="card card-highlight" style="padding: 14px; display: flex; flex-direction: column; justify-content: space-between;">
+            <div class="card-title accent">📚 Danh Mục Trích Dẫn Học Thuật Trọng Tâm</div>
+            <ul class="key-points" style="font-size: 0.78rem; gap: 7px; margin-top: 4px;">
+              <li>
+                <strong>[1] KeepLoRA (ICLR 2026):</strong> Luo et al., <em>"KeepLoRA: Protecting Historical Subspaces with Residual SVD Projection for Parameter-Efficient Continual Learning"</em>, ICLR 2026.
+              </li>
+              <li>
+                <strong>[2] BiCyc (ICLR 2026):</strong> Xu & Krawczyk, <em>"BiCyc: Bidirectional Alignment and Cycle Consistency for Exemplar-Free Class-Incremental Learning"</em>, ICLR 2026.
+              </li>
+              <li>
+                <strong>[3] PFD (ICML 2025):</strong> Cheng et al., <em>"Presentative Feature Distributions: Exemplar-Free Dynamic Adapter Routing in Continual Learning"</em>, ICML 2025.
+              </li>
+              <li>
+                <strong>[4] Vision Transformer (ICLR 2021):</strong> Dosovitskiy et al., <em>"An Image is Worth 16x16 Words: Transformers for Image Recognition at Scale"</em>, ICLR 2021.
+              </li>
+              <li>
+                <strong>[5] LoRA (ICLR 2022):</strong> Hu et al., <em>"LoRA: Low-Rank Adaptation of Large Language Models"</em>, ICLR 2022.
+              </li>
+              <li>
+                <strong>[6] L2P & DualPrompt (CVPR 2022 / ECCV 2022):</strong> Wang et al., <em>"Learning to Prompt for Continual Learning"</em>; <em>"DualPrompt: Complementary Prompting"</em>.
+              </li>
+              <li>
+                <strong>[7] RanPAC & SimpleCIL (NeurIPS 2023):</strong> McNeil et al., <em>"RanPAC: Random Projections"</em>; Zhou et al., <em>"Revisiting CIL with Pre-trained Models"</em>.
+              </li>
             </ul>
           </div>
 
-          <div class="card card-blue">
-            <div class="card-title primary">🟡 Giai đoạn 2: Quy mô Lớn ($T \ge 50$) (3 - 6 Tháng)</div>
-            <p style="font-size: 0.85rem; color: var(--text-secondary); line-height: 1.45;">
-              Giải quyết vấn đề tăng tuyến tính adapter khi số lượng task rất lớn:
-            </p>
-            <ul class="key-points" style="font-size: 0.83rem; margin-top: 6px;">
-              <li><strong>Subspace Adapter Pruning / Merging:</strong> Tự động phát hiện các adapter có góc không gian con gần nhau ($\cos \theta \ge 0.98$) để gộp lại, giữ kích thước bộ nhớ cố định.</li>
-              <li><strong>Lượng tử hóa INT4 / FP4:</strong> Nén các adapter lịch sử sang dạng 4-bit (QLoRA), giảm thêm 75% dung lượng VRAM khi chạy 100 tác vụ liên tiếp.</li>
-            </ul>
-          </div>
+          <!-- Right: Future Roadmap -->
+          <div class="card card-blue" style="padding: 14px; display: flex; flex-direction: column; justify-content: space-between;">
+            <div class="card-title primary">🚀 Lộ Trình Phát Triển 3 Giai Đoạn</div>
+            <div style="display: flex; flex-direction: column; gap: 10px; font-size: 0.82rem;">
+              <div style="background: #ffffff; padding: 10px 12px; border-radius: 8px; border-left: 3px solid var(--accent);">
+                <strong style="color: var(--accent);">🟢 Giai đoạn 1: Hoàn thiện NCKH (1 - 3 Tháng)</strong>
+                <p style="color: var(--text-secondary); margin-top: 2px; line-height: 1.4;">Hoàn thành Full Benchmark 10 & 20 tasks CIFAR-100 / ImageNet-R; soạn thảo bản thảo nộp hội nghị quốc tế; mã nguồn mở kèm notebook 1-click.</p>
+              </div>
 
-          <div class="card">
-            <div class="card-title secondary">🔵 Giai đoạn 3: Đa Phương Thức & Biên (6 - 12 Tháng)</div>
-            <p style="font-size: 0.85rem; color: var(--text-secondary); line-height: 1.45;">
-              Mở rộng phạm vi ứng dụng vào đời sống công nghiệp thực tế:
-            </p>
-            <ul class="key-points" style="font-size: 0.83rem; margin-top: 6px;">
-              <li><strong>Multimodal Continual Learning:</strong> Mở rộng sang nền tảng <strong>CLIP / SigLIP / OpenCLIP</strong>, đồng căn chỉnh cả không gian biểu diễn văn bản và thị giác.</li>
-              <li><strong>Triển khai Edge AI Thực tế:</strong> Tích hợp lên vi xử lý nhúng <strong>NVIDIA Jetson Orin Nano / Robot tự hành</strong> để nhận diện đối tượng mới liên tục ngoài đời thực.</li>
-            </ul>
+              <div style="background: #ffffff; padding: 10px 12px; border-radius: 8px; border-left: 3px solid var(--primary);">
+                <strong style="color: var(--primary-dark);">🟡 Giai đoạn 2: Quy mô Lớn ($T \ge 50$) (3 - 6 Tháng)</strong>
+                <p style="color: var(--text-secondary); margin-top: 2px; line-height: 1.4;">Cơ chế Subspace Adapter Pruning tự động gộp các adapter có góc tương đồng ($\cos \ge 0.98$); lượng tử hóa INT4/FP4 giảm 75% VRAM khi chạy 100 tác vụ.</p>
+              </div>
+
+              <div style="background: #ffffff; padding: 10px 12px; border-radius: 8px; border-left: 3px solid var(--secondary);">
+                <strong style="color: var(--secondary);">🔵 Giai đoạn 3: Đa Phương Thức & Biên (6 - 12 Tháng)</strong>
+                <p style="color: var(--text-secondary); margin-top: 2px; line-height: 1.4;">Mở rộng sang mô hình CLIP/SigLIP đa phương thức; triển khai Edge AI trên chip nhúng NVIDIA Jetson Orin Nano / Robot tự hành ngoài đời thực.</p>
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
       <!-- SLIDE 20: RESEARCH TEAM CHEAT SHEET -->
       <section class="slide">
-        <h1 class="slide-title">19. Sổ Tay Khái Niệm Cốt Lõi (Glossary & Cheat Sheet)</h1>
+        <h1 class="slide-title">18. Sổ Tay Khái Niệm Cốt Lõi (Glossary & Cheat Sheet)</h1>
         <h2 class="slide-subtitle">Cẩm nang tra cứu thuật ngữ & cơ chế toán học giúp nhóm tự tin phản biện</h2>
 
         <div class="grid-3" style="gap: 14px;">
@@ -1761,7 +1970,37 @@
     <div class="overview-grid" id="overview-grid"></div>
   </div>
 
+  <!-- Diagram Zoom Lightbox Modal -->
+  <div id="diagram-modal" onclick="closeDiagramModal(event)">
+    <div class="diagram-modal-header" onclick="event.stopPropagation()">
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <span class="badge" style="background: rgba(56, 189, 248, 0.2); color: #38bdf8; border-color: rgba(56, 189, 248, 0.4); font-size: 0.82rem;">CHẾ ĐỘ XEM CHI TIẾT SƠ ĐỒ</span>
+        <h3 id="diagram-modal-title" style="font-size: 1.15rem; font-weight: 700; color: #f8fafc;"></h3>
+      </div>
+      <button class="btn" onclick="closeDiagramModal()" style="background: rgba(255,255,255,0.15); color: #ffffff; border-color: rgba(255,255,255,0.25);">✕ Đóng (Esc)</button>
+    </div>
+    <div class="diagram-modal-content" onclick="event.stopPropagation()">
+      <img id="diagram-modal-img" src="" alt="Sơ đồ phóng to cực đại">
+    </div>
+  </div>
+
   <script>
+    // Diagram Lightbox Handlers
+    const diagramModal = document.getElementById("diagram-modal");
+    const diagramModalImg = document.getElementById("diagram-modal-img");
+    const diagramModalTitle = document.getElementById("diagram-modal-title");
+
+    function openDiagramModal(imgSrc, title) {
+      if (!diagramModal || !diagramModalImg) return;
+      diagramModalImg.src = imgSrc;
+      diagramModalTitle.innerText = title || "Chi tiết Sơ đồ Kiến trúc";
+      diagramModal.classList.add("open");
+    }
+
+    function closeDiagramModal(event) {
+      if (!diagramModal) return;
+      diagramModal.classList.remove("open");
+    }
     // Preview Image helper for file upload replacement
     function previewImage(event, inputElement) {
       const file = event.target.files[0];
@@ -1867,6 +2106,11 @@
 
       // Keyboard navigation
       document.addEventListener("keydown", (e) => {
+        if (diagramModal && diagramModal.classList.contains("open")) {
+          if (e.key === "Escape") closeDiagramModal();
+          return;
+        }
+
         if (overviewModal.classList.contains("open")) {
           if (e.key === "Escape") toggleOverview();
           return;
