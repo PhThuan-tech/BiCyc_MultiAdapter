@@ -6,6 +6,11 @@ Usage (from the repository root):
 
 from __future__ import annotations
 
+import os
+
+# Prevent CUDA memory fragmentation on 15 GB GPUs (Kaggle T4 / P100)
+os.environ.setdefault("PYTORCH_CUDA_ALLOC_CONF", "expandable_segments:True")
+
 import hydra
 from omegaconf import DictConfig
 

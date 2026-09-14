@@ -1,0 +1,236 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 540" width="100%" height="100%" style="background:#ffffff; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
+  <defs>
+    <!-- Gradients -->
+    <linearGradient id="grad-header" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f172a"/>
+      <stop offset="100%" stop-color="#1e293b"/>
+    </linearGradient>
+    <linearGradient id="grad-ptm" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f8fafc"/>
+      <stop offset="100%" stop-color="#e2e8f0"/>
+    </linearGradient>
+    <linearGradient id="grad-lora-a" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#e0f2fe"/>
+      <stop offset="100%" stop-color="#bae6fd"/>
+    </linearGradient>
+    <linearGradient id="grad-lora-b" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#dcfce7"/>
+      <stop offset="100%" stop-color="#bbf7d0"/>
+    </linearGradient>
+    <linearGradient id="grad-cluster-blue" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.35"/>
+      <stop offset="100%" stop-color="#0284c7" stop-opacity="0.08"/>
+    </linearGradient>
+    <linearGradient id="grad-cluster-red" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f87171" stop-opacity="0.35"/>
+      <stop offset="100%" stop-color="#dc2626" stop-opacity="0.08"/>
+    </linearGradient>
+    <linearGradient id="grad-cluster-green" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4ade80" stop-opacity="0.35"/>
+      <stop offset="100%" stop-color="#16a34a" stop-opacity="0.08"/>
+    </linearGradient>
+
+    <!-- Filters & Shadows -->
+    <filter id="shadow-card" x="-4%" y="-4%" width="108%" height="110%" filterUnits="userSpaceOnUse">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#0f172a" flood-opacity="0.08"/>
+    </filter>
+
+    <!-- Markers -->
+    <marker id="arr-slate" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 1 2 L 8 5 L 1 8 z" fill="#64748b"/>
+    </marker>
+    <marker id="arr-blue" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 1 2 L 8 5 L 1 8 z" fill="#0284c7"/>
+    </marker>
+    <marker id="arr-green" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 1 2 L 8 5 L 1 8 z" fill="#059669"/>
+    </marker>
+  </defs>
+
+  <!-- Outer Card Frame -->
+  <rect x="12" y="12" width="936" height="516" rx="16" fill="#ffffff" stroke="#e2e8f0" stroke-width="1.5" filter="url(#shadow-card)"/>
+
+  <!-- Header Banner -->
+  <path d="M 12 28 Q 12 12 28 12 L 932 12 Q 948 12 948 28 L 948 64 L 12 64 Z" fill="url(#grad-header)"/>
+  <text x="36" y="38" fill="#38bdf8" font-size="11" font-weight="800" letter-spacing="0.1em">PHASE 1 ARCHITECTURE • TASK t INITIALIZATION</text>
+  <text x="36" y="56" fill="#ffffff" font-size="15" font-weight="700">Null-Space Gradient SVD &amp; Function-Preserving KeepLoRA Initialization</text>
+  <rect x="740" y="24" width="188" height="28" rx="14" fill="rgba(56, 189, 248, 0.15)" stroke="#38bdf8" stroke-width="1"/>
+  <text x="834" y="42" fill="#38bdf8" font-size="11" font-weight="700" text-anchor="middle">Luo et al. (ICLR 2026)</text>
+
+  <!-- ================= LEFT PANEL: PIPELINE & STREAM ================= -->
+  <g transform="translate(32, 82)">
+    <rect width="580" height="240" rx="12" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1.2"/>
+    <text x="20" y="24" fill="#334155" font-size="12" font-weight="700">Flow: Dữ Liệu Tác Vụ Mới Dᵗ ➔ Null-Space Projection ➔ Khởi Tạo KeepLoRA</text>
+
+    <!-- Data Samples Capsule D^t -->
+    <rect x="18" y="45" width="105" height="175" rx="10" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.2"/>
+    <text x="70" y="65" fill="#0f172a" font-size="12" font-weight="800" text-anchor="middle">Dᵗ (Task t)</text>
+    
+    <!-- Sample item 1: Frog (Green class) -->
+    <circle cx="46" cy="95" r="16" fill="#dcfce7" stroke="#16a34a" stroke-width="1.2"/>
+    <text x="46" y="100" font-size="16" text-anchor="middle">🐸</text>
+    <circle cx="88" cy="95" r="16" fill="#f1f5f9" stroke="#94a3b8" stroke-width="1"/>
+    <text x="88" y="100" font-size="15" text-anchor="middle">🦎</text>
+    
+    <!-- Sample item 2: Tiger (Orange class) -->
+    <circle cx="46" cy="140" r="16" fill="#fef3c7" stroke="#d97706" stroke-width="1.2"/>
+    <text x="46" y="145" font-size="16" text-anchor="middle">🐯</text>
+    <circle cx="88" cy="140" r="16" fill="#f1f5f9" stroke="#94a3b8" stroke-width="1"/>
+    <text x="88" y="145" font-size="15" text-anchor="middle">🦁</text>
+
+    <!-- Sample item 3: Bird (Blue class) -->
+    <circle cx="46" cy="185" r="16" fill="#e0f2fe" stroke="#0284c7" stroke-width="1.2"/>
+    <text x="46" y="190" font-size="16" text-anchor="middle">🐦</text>
+    <circle cx="88" cy="185" r="16" fill="#f1f5f9" stroke="#94a3b8" stroke-width="1"/>
+    <text x="88" y="190" font-size="15" text-anchor="middle">🦅</text>
+
+    <!-- Arrow Data -> Base Model -->
+    <path d="M 123 132 L 152 132" fill="none" stroke="#64748b" stroke-width="2" marker-end="url(#arr-slate)"/>
+
+    <!-- PTM (ViT Backbone) Box -->
+    <rect x="156" y="55" width="135" height="155" rx="10" fill="url(#grad-ptm)" stroke="#94a3b8" stroke-width="1.5"/>
+    <rect x="168" y="65" width="111" height="24" rx="5" fill="#334155"/>
+    <text x="223" y="81" fill="#ffffff" font-size="11.5" font-weight="800" text-anchor="middle">PTM ViT ❄️</text>
+    <text x="223" y="102" fill="#64748b" font-size="9" text-anchor="middle">(Frozen Pretrained)</text>
+
+    <!-- Frozen Backbone layers -->
+    <rect x="168" y="112" width="111" height="22" rx="4" fill="#ffffff" stroke="#cbd5e1"/>
+    <text x="223" y="127" fill="#475569" font-size="9.5" text-anchor="middle">Multi-Head Attn</text>
+    <rect x="168" y="139" width="111" height="22" rx="4" fill="#ffffff" stroke="#cbd5e1"/>
+    <text x="223" y="154" fill="#475569" font-size="9.5" text-anchor="middle">MLP Blocks (1..12)</text>
+    <rect x="168" y="166" width="111" height="32" rx="4" fill="#f1f5f9" stroke="#0284c7" stroke-dasharray="3 2"/>
+    <text x="223" y="181" fill="#0369a1" font-size="9" font-weight="700" text-anchor="middle"><tspan font-style="italic">W</tspan><tspan font-size="75%" dy="2">p</tspan><tspan dy="-2">, </tspan><tspan font-style="italic">M</tspan><tspan font-size="75%" dy="2">t-1</tspan><tspan dy="-2"> ❄️</tspan></text>
+    <text x="223" y="193" fill="#64748b" font-size="8" text-anchor="middle">Lịch sử kích hoạt</text>
+
+    <!-- Arrow Base Model -> Projection Operator -->
+    <path d="M 291 132 L 322 132" fill="none" stroke="#0284c7" stroke-width="2" marker-end="url(#arr-blue)"/>
+    <text x="306" y="122" fill="#0284c7" font-size="10" font-weight="700" text-anchor="middle">Gᵗ</text>
+
+    <!-- Null-Space Projection Box -->
+    <rect x="326" y="45" width="235" height="175" rx="10" fill="#ffffff" stroke="#d97706" stroke-width="1.3"/>
+    <rect x="338" y="55" width="211" height="26" rx="6" fill="#fef3c7" stroke="#f59e0b" stroke-width="1"/>
+    <text x="443" y="72" fill="#b45309" font-size="11" font-weight="800" text-anchor="middle">Null-Space Projector (I − Q Qᵀ)</text>
+
+    <!-- Mathematical steps inside -->
+    <text x="340" y="100" fill="#334155" font-size="10">1. Cơ sở trực chuẩn:</text>
+    <text x="348" y="115" fill="#0284c7" font-size="10.5" font-family="'Times New Roman', serif" font-weight="700"><tspan font-style="italic">Q</tspan><tspan font-size="75%" dy="2">t-1</tspan><tspan dy="-2"> = QR([</tspan><tspan font-style="italic">W</tspan><tspan font-size="75%" dy="2">p</tspan><tspan dy="-2">, </tspan><tspan font-style="italic">M</tspan><tspan font-size="75%" dy="2">t-1</tspan><tspan dy="-2">]).Q</tspan></text>
+    
+    <text x="340" y="136" fill="#334155" font-size="10">2. Chiếu gradient tích lũy:</text>
+    <text x="348" y="151" fill="#b45309" font-size="11" font-family="'Times New Roman', serif" font-weight="700">Ĝᵗ = (I − <tspan font-style="italic">Q</tspan><tspan font-size="75%" dy="2">t-1</tspan><tspan dy="-2"> </tspan><tspan font-style="italic">Q</tspan><tspan font-size="75%" dy="2">t-1</tspan><tspan font-size="75%" dy="-4">ᵀ</tspan><tspan dy="2">) Gᵗ</tspan></text>
+    <text x="348" y="167" fill="#047857" font-size="9.5" font-weight="700">✓ Đảm bảo trực giao: Ĝᵗ ⊥ <tspan font-style="italic">Q</tspan><tspan font-size="75%" dy="2">t-1</tspan><tspan dy="-2"></tspan></text>
+
+    <!-- SVD trigger button -->
+    <rect x="340" y="177" width="207" height="32" rx="6" fill="#ecfdf5" stroke="#10b981" stroke-width="1.2"/>
+    <text x="443" y="197" fill="#065f46" font-size="10.5" font-weight="700" text-anchor="middle">SVD: Ĝᵗ = U · Σ · Vᵀ ➔ (Aᵗ ❄️, Bᵗ(0))</text>
+  </g>
+
+  <!-- ================= BOTTOM LEFT: FEATURE SPACE CLUSTERS ================= -->
+  <g transform="translate(32, 335)">
+    <rect width="580" height="175" rx="12" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.2"/>
+    <text x="18" y="22" fill="#0f172a" font-size="11.5" font-weight="800">Không Gian Đặc Trưng (Feature Space Geometry): Bảo Toàn Trực Giao</text>
+
+    <!-- Left Box: Subspace t-1 -->
+    <g transform="translate(18, 32)">
+      <rect width="250" height="125" rx="8" fill="#f8fafc" stroke="#e2e8f0"/>
+      <text x="12" y="18" fill="#0369a1" font-size="10" font-weight="700">Không gian tri thức cũ <tspan font-style="italic">Q</tspan><tspan font-size="75%" dy="2">t-1</tspan><tspan dy="-2"> ❄️</tspan></text>
+
+      <!-- Old cluster Blue -->
+      <ellipse cx="65" cy="72" rx="42" ry="28" fill="url(#grad-cluster-blue)" stroke="#0284c7" stroke-width="1.2" stroke-dasharray="3 2"/>
+      <polygon points="65,65 67,70 72,71 68,74 69,79 65,76 61,79 62,74 58,71 63,70" fill="#0284c7"/>
+      <text x="65" y="93" fill="#0369a1" font-size="9" font-weight="700" text-anchor="middle">Class 1</text>
+      <!-- Blue sub-stars -->
+      <circle cx="50" cy="65" r="1.5" fill="#0284c7"/>
+      <circle cx="75" cy="62" r="1.5" fill="#0284c7"/>
+      <circle cx="80" cy="78" r="1.5" fill="#0284c7"/>
+
+      <!-- Old cluster Green -->
+      <ellipse cx="170" cy="75" rx="48" ry="32" fill="url(#grad-cluster-green)" stroke="#16a34a" stroke-width="1.2" stroke-dasharray="3 2"/>
+      <polygon points="170,68 172,73 177,74 173,77 174,82 170,79 166,82 167,77 163,74 168,73" fill="#16a34a"/>
+      <text x="170" y="96" fill="#15803d" font-size="9" font-weight="700" text-anchor="middle">Class 2</text>
+      <!-- Green sub-stars -->
+      <circle cx="150" cy="70" r="1.5" fill="#16a34a"/>
+      <circle cx="185" cy="66" r="1.5" fill="#16a34a"/>
+      <circle cx="160" cy="88" r="1.5" fill="#16a34a"/>
+    </g>
+
+    <!-- Arrow Orthogonal Transition -->
+    <path d="M 282 95 L 310 95" fill="none" stroke="#d97706" stroke-width="2" marker-end="url(#arr-slate)"/>
+    <text x="296" y="85" fill="#b45309" font-size="12" font-weight="800" text-anchor="middle">⊥</text>
+
+    <!-- Right Box: New Subspace (Null-Space Projection) -->
+    <g transform="translate(318, 32)">
+      <rect width="244" height="125" rx="8" fill="#fffbeb" stroke="#fde68a"/>
+      <text x="12" y="18" fill="#b45309" font-size="10" font-weight="700">Không gian bù trực giao (Null-Space) 🔥</text>
+
+      <!-- Shaded old space protection wall -->
+      <line x1="90" y1="28" x2="90" y2="120" stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="4 3"/>
+      <text x="48" y="112" fill="#92400e" font-size="8" font-weight="600" text-anchor="middle">Vùng cấm xâm phạm</text>
+
+      <!-- New task cluster Red in null space -->
+      <ellipse cx="165" cy="70" rx="55" ry="34" fill="url(#grad-cluster-red)" stroke="#dc2626" stroke-width="1.5"/>
+      <polygon points="165,62 167,67 172,68 168,71 169,76 165,73 161,76 162,71 158,68 163,67" fill="#dc2626"/>
+      <text x="165" y="88" fill="#b91c1c" font-size="9.5" font-weight="800" text-anchor="middle">Task t (New Class)</text>
+      <!-- Red sub-stars -->
+      <circle cx="140" cy="62" r="2" fill="#dc2626"/>
+      <circle cx="185" cy="60" r="2" fill="#dc2626"/>
+      <circle cx="145" cy="78" r="2" fill="#dc2626"/>
+      <circle cx="180" cy="80" r="2" fill="#dc2626"/>
+
+      <!-- Orthogonal tag -->
+      <rect x="110" y="102" width="110" height="18" rx="4" fill="#fee2e2"/>
+      <text x="165" y="114" fill="#991b1b" font-size="8.5" font-weight="700" text-anchor="middle">Ĝᵗ ⊥ <tspan font-style="italic">Q</tspan><tspan font-size="75%" dy="2">t-1</tspan><tspan dy="-2"> (0 xung đột)</tspan></text>
+    </g>
+  </g>
+
+  <!-- ================= RIGHT PANEL: LORA PROJECTOR DETAIL ================= -->
+  <g transform="translate(630, 82)">
+    <!-- Container Box -->
+    <rect width="298" height="428" rx="14" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1.5"/>
+    <path d="M 0 14 Q 0 0 14 0 L 284 0 Q 298 0 298 14 L 298 38 L 0 38 Z" fill="#0284c7"/>
+    <text x="149" y="24" fill="#ffffff" font-size="12" font-weight="800" text-anchor="middle">KeepLoRA Adapter Architecture</text>
+
+    <!-- Top Formula: Output summation -->
+    <circle cx="149" cy="60" r="11" fill="#ffffff" stroke="#0284c7" stroke-width="1.5"/>
+    <text x="149" y="65" fill="#0284c7" font-size="15" font-weight="800" text-anchor="middle">⊕</text>
+    <text x="149" y="84" fill="#334155" font-size="10" font-weight="700" text-anchor="middle"><tspan font-style="italic">h</tspan><tspan font-size="75%" dy="2">out</tspan><tspan dy="-2"> = </tspan><tspan font-style="italic">W</tspan><tspan font-size="75%" dy="2">0</tspan><tspan dy="-2"> </tspan><tspan font-style="italic">h</tspan> + Δ<tspan font-style="italic">W</tspan><tspan font-size="75%" dy="2">t</tspan><tspan dy="-2"> </tspan><tspan font-style="italic">h</tspan></text>
+
+    <!-- Skip Connection line -->
+    <path d="M 60 405 L 35 405 L 35 60 L 138 60" fill="none" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="4 3"/>
+    <text x="45" y="230" fill="#64748b" font-size="8.5" transform="rotate(-90 45,230)" text-anchor="middle">Frozen Backbone <tspan font-style="italic">W</tspan><tspan font-size="75%" dy="2">0</tspan><tspan dy="-2"> </tspan><tspan font-style="italic">h</tspan> ❄️</text>
+
+    <!-- Scale factor alpha / r -->
+    <rect x="94" y="98" width="110" height="26" rx="6" fill="#fef3c7" stroke="#f59e0b" stroke-width="1.2"/>
+    <text x="149" y="115" fill="#b45309" font-size="10.5" font-weight="700" text-anchor="middle">Scale: (α / r)</text>
+    <path d="M 149 98 L 149 71" fill="none" stroke="#0284c7" stroke-width="1.5" marker-end="url(#arr-blue)"/>
+
+    <!-- LoRA Up-Projection Matrix B_t (Trapezoid expanding upwards) -->
+    <!-- Points: bottom (narrow, rank r) -> top (wide, d_out) -->
+    <polygon points="104,185 194,185 229,145 69,145" fill="url(#grad-lora-b)" stroke="#16a34a" stroke-width="1.5"/>
+    <text x="149" y="162" fill="#15803d" font-size="12" font-weight="800" text-anchor="middle">Bᵗ (LoRA Up) 🔥</text>
+    <text x="149" y="176" fill="#166534" font-size="9" text-anchor="middle">Khởi tạo: <tspan font-style="italic">B</tspan>ᵗ(0) = Σ<tspan font-size="75%" dy="2">1:r</tspan><tspan dy="-2"> </tspan><tspan font-style="italic">V</tspan>ᵀ</text>
+    <path d="M 149 145 L 149 124" fill="none" stroke="#16a34a" stroke-width="1.5" marker-end="url(#arr-green)"/>
+
+    <!-- Intermediate Bottleneck Rank r Dimension -->
+    <rect x="99" y="200" width="100" height="24" rx="5" fill="#ffffff" stroke="#cbd5e1"/>
+    <text x="149" y="216" fill="#0f172a" font-size="10" font-weight="700" text-anchor="middle">Bottleneck (r = 8)</text>
+    <path d="M 149 200 L 149 185" fill="none" stroke="#64748b" stroke-width="1.5"/>
+
+    <!-- LoRA Down-Projection Matrix A_t (Trapezoid contracting downwards) -->
+    <!-- Points: bottom (wide, d_in) -> top (narrow, rank r) -->
+    <polygon points="69,275 229,275 194,235 104,235" fill="url(#grad-lora-a)" stroke="#0284c7" stroke-width="1.5"/>
+    <text x="149" y="254" fill="#0369a1" font-size="12" font-weight="800" text-anchor="middle">Aᵗ (LoRA Down) ❄️</text>
+    <text x="149" y="267" fill="#075985" font-size="9" text-anchor="middle">Trích xuất: <tspan font-style="italic">A</tspan>ᵗ = <tspan font-style="italic">U</tspan><tspan font-size="75%" dy="2">:, 1:r</tspan><tspan dy="-2"> (Đóng băng)</tspan></text>
+    <path d="M 149 235 L 149 224" fill="none" stroke="#0284c7" stroke-width="1.5" marker-end="url(#arr-blue)"/>
+
+    <!-- Input Vector h_in -->
+    <path d="M 149 320 L 149 275" fill="none" stroke="#64748b" stroke-width="2" marker-end="url(#arr-slate)"/>
+    <circle cx="149" cy="335" r="14" fill="#ffffff" stroke="#64748b" stroke-width="1.5"/>
+    <text x="149" y="340" fill="#334155" font-size="11" font-weight="800" text-anchor="middle">h</text>
+    <text x="149" y="360" fill="#64748b" font-size="9" text-anchor="middle">Input Hidden States</text>
+
+    <!-- Function-Preserving Proof Card at bottom -->
+    <rect x="18" y="375" width="262" height="42" rx="8" fill="#ecfdf5" stroke="#10b981" stroke-width="1.2"/>
+    <text x="149" y="392" fill="#065f46" font-size="9.5" font-weight="800" text-anchor="middle">🎯 BẢO TOÀN HÀM TẠI EPOCH 0:</text>
+    <text x="149" y="407" fill="#047857" font-size="9" font-family="'Times New Roman', serif" text-anchor="middle">ΔWᵗ = (α/r) Aᵗ (Bᵗ − Bᵗ(0)) = 0 ⟹ fᵗ(x) ≡ fᵗ⁻¹(x)</text>
+  </g>
+</svg>

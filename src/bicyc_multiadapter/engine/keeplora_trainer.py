@@ -68,8 +68,9 @@ class KeepLoRATrainer:
         self.amp_dtype = _AMP_DTYPES.get(config.amp_dtype, torch.float16)
         self.amp_enabled = bool(config.use_amp and torch.cuda.is_available())
         scaler_enabled = self.amp_enabled and self.amp_dtype == torch.float16
-        self.scaler_model = torch.amp.GradScaler("cuda", enabled=scaler_enabled)
-        self.scaler_alignment = torch.amp.GradScaler("cuda", enabled=scaler_enabled)
+        self.scaler = torch.amp.GradScaler("cuda", enabled=scaler_enabled)
+        self.scaler_model = self.scaler  # alias for backwards compatibility
+        self.scaler_alignment = self.scaler
 
     def _autocast(self):
         return torch.autocast(device_type="cuda", dtype=self.amp_dtype, enabled=self.amp_enabled)
@@ -102,9 +103,11 @@ class KeepLoRATrainer:
             with torch.no_grad(), self._autocast():
                 _, old_features = self.old_model(images)
 
-        # --- step 1: CE (+ gated backward distillation) updates B factors and head.
-        self._set_trainable(self.bicycle, False)
+
         self.model_optimizer.zero_grad(set_to_none=True)
+        if old_features is not None:
+            self.alignment_optimizer.zero_grad(set_to_none=True)
+
         with self._autocast():
             logits, new_features = self.current_model(images)
             classification = F.cross_entropy(logits, labels)
@@ -114,8 +117,13 @@ class KeepLoRATrainer:
             distance_raw = torch.tensor(0.0, device=device)
             distance_per_dim = torch.tensor(0.0, device=device)
             backward_term = torch.tensor(0.0, device=device)
+            alignment_loss = None
+
             if old_features is not None and self.config.use_distillation:
-                pred_old = self.bicycle.new_to_old(new_features)
+                # Use detached weights of self.bicycle.new_to_old so gradients flow to
+                # new_features (current model), but NOT to bicycle parameters in this step.
+                # This strictly preserves the Two-Optimizer Gradient Barrier with a single joint backward!
+                pred_old = self.bicycle.predict_old_detached_weights(new_features)
                 diff_sq = (pred_old - old_features.detach()).square()
                 backward_term = diff_sq.mean()
                 if self.config.use_adaptive_gate:
@@ -142,25 +150,29 @@ class KeepLoRATrainer:
                     model_loss = model_loss + self.config.anti_collapse_weight * robust_anti_collapse_loss(
                         new_features.float()
                     )
-        self.scaler_model.scale(model_loss).backward()
-        self.scaler_model.step(self.model_optimizer)
-        self.scaler_model.update()
+
+            if old_features is not None:
+                # Step 2 terms with detached features; only updates A/D maps
+                alignment_terms = bicyc_loss(self.bicycle, old_features.detach(), new_features.detach())
+                alignment_loss = alignment_terms.total(
+                    self.config.lambda_bi * phase_scale,
+                    self.config.lambda_cyc * phase_scale,
+                    self.config.lambda_iso * phase_scale,
+                )
+                total_loss = model_loss + alignment_loss
+            else:
+                total_loss = model_loss
+
+        # Single combined backward pass: computes gradients for both model and alignment disjointly
+        self.scaler.scale(total_loss).backward()
+        self.scaler.step(self.model_optimizer)
+        if alignment_loss is not None:
+            self.scaler.step(self.alignment_optimizer)
+        self.scaler.update()
+
         if old_features is None:
             return {"loss/ce": float(classification.detach()), "loss/model": float(model_loss.detach())}
 
-        # --- step 2: all feature tensors detached; this step only learns A/D maps.
-        self._set_trainable(self.bicycle, True)
-        self.alignment_optimizer.zero_grad(set_to_none=True)
-        with self._autocast():
-            alignment_terms = bicyc_loss(self.bicycle, old_features.detach(), new_features.detach())
-            alignment_loss = alignment_terms.total(
-                self.config.lambda_bi * phase_scale,
-                self.config.lambda_cyc * phase_scale,
-                self.config.lambda_iso * phase_scale,
-            )
-        self.scaler_alignment.scale(alignment_loss).backward()
-        self.scaler_alignment.step(self.alignment_optimizer)
-        self.scaler_alignment.update()
         return {
             "loss/ce": float(classification.detach()),
             "loss/model": float(model_loss.detach()),

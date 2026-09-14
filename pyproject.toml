@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "bicyc-multiadapter"
 version = "0.1.0"
-description = "Research scaffold for exemplar-free CIL with KeepLoRA and RSIAT"
+description = "Exemplar-Free Class-Incremental Learning with KeepLoRA and BiCyc Multi-Adapter"
 requires-python = ">=3.11"
 readme = "README.md"
 license = {text = "MIT"}
@@ -20,4 +20,5 @@ target-version = "py311"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+pythonpath = ["src"]
 addopts = "-q"

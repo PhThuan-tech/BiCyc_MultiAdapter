@@ -27,21 +27,34 @@ class PresentativeFeatureRouter(nn.Module):
         self.means = nn.ParameterDict()  # requires_grad=False statistical state, checkpointed with module
         self.counts = nn.ParameterDict()
 
-    def update_distribution(self, task_id: int, frozen_base_features: Tensor) -> None:
+    def update_distribution(
+        self, task_id: int, frozen_base_features: Tensor, batch_count: int | None = None
+    ) -> None:
         """Online update of D_k^l=E[W^l h^l(x)]; no raw features are retained."""
         key = str(task_id)
-        if frozen_base_features.ndim != 2 or frozen_base_features.shape[1] != self.feature_dim:
-            raise ValueError("Expected [batch, feature_dim] frozen-base features.")
         detached = frozen_base_features.detach()
-        batch_count = detached.shape[0]
-        batch_mean = detached.mean(0)
+        if detached.ndim > 2:
+            detached = detached.reshape(-1, detached.shape[-1])
+        if detached.ndim == 2:
+            if detached.shape[1] != self.feature_dim:
+                raise ValueError("Expected [batch, feature_dim] frozen-base features.")
+            count_val = float(detached.shape[0] if batch_count is None else batch_count)
+            batch_mean = detached.mean(0)
+        elif detached.ndim == 1:
+            if detached.shape[0] != self.feature_dim:
+                raise ValueError("Expected [feature_dim] frozen-base features.")
+            count_val = float(1 if batch_count is None else batch_count)
+            batch_mean = detached
+        else:
+            raise ValueError("Expected 1D or 2D frozen-base features.")
+
         if key not in self.means:
             self.means[key] = nn.Parameter(batch_mean.clone(), requires_grad=False)
-            self.counts[key] = nn.Parameter(torch.tensor(float(batch_count), device=detached.device), requires_grad=False)
+            self.counts[key] = nn.Parameter(torch.tensor(count_val, device=detached.device), requires_grad=False)
             return
         count = self.counts[key].data
-        self.means[key].data.copy_((self.means[key].data * count + batch_mean * batch_count) / (count + batch_count))
-        self.counts[key].data.copy_(count + batch_count)
+        self.means[key].data.copy_((self.means[key].data * count + batch_mean * count_val) / (count + count_val))
+        self.counts[key].data.copy_(count + count_val)
 
     def routing_weights(self, frozen_base_features: Tensor, top_k: int | None = None) -> tuple[list[str], Tensor]:
         """Return task IDs and per-sample softmax weights, optionally sparse Top-K."""
@@ -123,10 +136,26 @@ class RoutedKeepLoRALinear(nn.Module):
         for parameter in self.adapters[str(task_id)].parameters():
             parameter.requires_grad_(False)
 
-    def update_distribution(self, task_id: int, layer_inputs: Tensor) -> None:
-        """Online update; ``.float()`` keeps means fp32 even under AMP forwards."""
-        detached = layer_inputs.detach().float()
-        self.router.update_distribution(task_id, detached @ self.base_weight)
+    def update_distribution(self, task_id: int, layer_inputs: Tensor | tuple[Tensor, int]) -> None:
+        """Online update; ``.float()`` keeps means fp32 even under AMP forwards.
+
+        Accepts either:
+        - tuple `(mean_vector, batch_count)` where `mean_vector` has shape `[1, d_in]`
+          (ultra-compact 3KB representation; avoids 3.25GB GPU VRAM allocation).
+        - standard `Tensor` with shape `[batch, d_in]` or `[batch, tokens, d_in]`.
+        """
+        if isinstance(layer_inputs, tuple):
+            mean_vec, batch_count = layer_inputs
+            detached = mean_vec.detach().float()
+            self.router.update_distribution(task_id, detached @ self.base_weight, batch_count=batch_count)
+        else:
+            detached = layer_inputs.detach().float()
+            if detached.ndim > 2:
+                batch_count = detached.shape[0] * detached.shape[1]
+                mean_vec = detached.mean(dim=(0, 1), keepdim=True)
+                self.router.update_distribution(task_id, mean_vec @ self.base_weight, batch_count=batch_count)
+            else:
+                self.router.update_distribution(task_id, detached @ self.base_weight)
 
     @torch.no_grad()
     def route_report(self, inputs: Tensor, top_k: int | None = None) -> dict[str, float]:
@@ -150,9 +179,16 @@ class RoutedKeepLoRALinear(nn.Module):
             if key not in self.adapters:
                 continue  # defensive: a mean without its adapter (should not happen)
             weight_column = weights[:, index]
-            if base_features.dim() == 3:
-                weight_column = weight_column.view(feats.shape[0], feats.shape[1], 1)
+            if not (weight_column > 0).any():
+                continue
+            delta = self.adapters[key].delta(inputs)
+            if (weight_column == 1.0).all():
+                output = output + delta.to(output.dtype)
             else:
-                weight_column = weight_column.unsqueeze(-1)
-            output = output + weight_column * self.adapters[key].delta(inputs)
+                if base_features.dim() == 3:
+                    w = weight_column.view(feats.shape[0], feats.shape[1], 1).to(output.dtype)
+                else:
+                    w = weight_column.unsqueeze(-1).to(output.dtype)
+                output = output + w * delta
         return output + (0 if self.bias is None else self.bias)
+

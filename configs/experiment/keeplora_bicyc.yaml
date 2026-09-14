@@ -13,6 +13,7 @@ image_size: 224
 # Transformer projections replaced by KeepLoRA-wrapped linears.
 targets: [qkv, proj, fc1, fc2]
 activation_cache_rows: 4096  # CPU rows kept per layer for the end-of-task SVD
+gradient_init_subsample: 1280 # sub-sample for SVD gradient init (~20-25% of task stream)
 train:
   epochs_per_task: 20
   batch_size: 128

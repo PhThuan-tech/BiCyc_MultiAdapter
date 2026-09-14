@@ -354,8 +354,13 @@ class DirectionOneExperiment:
             self.log.info("Resume giua task %s tu epoch %s", task_id, first_epoch)
         else:
             # One CE-only backward pass gives G_t; residual-SVD init of A/B; hooks on.
-            self.model.begin_task(task_id, train_loader, self.device)
-            self.log.info("[task %s] begin_task xong (gradient-SVD init)", task_id)
+            max_grad_samples = self.cfg.experiment.get("gradient_init_subsample", None)
+            if max_grad_samples is not None:
+                max_grad_samples = int(max_grad_samples)
+            self.model.begin_task(task_id, train_loader, self.device, max_gradient_samples=max_grad_samples)
+            self.log.info("[task %s] begin_task xong (gradient-SVD init, subsample=%s)", task_id, max_grad_samples)
+            if torch.cuda.is_available() and self.device != "cpu":
+                torch.cuda.empty_cache()
 
         model_optimizer = torch.optim.AdamW(
             self.model.trainable_parameters(),
@@ -378,6 +383,10 @@ class DirectionOneExperiment:
         try:
             for epoch in range(first_epoch, total_epochs):
                 running = {}
+                is_routing_epoch = (epoch == 0) or (
+                    epoch == first_epoch
+                    and not any(str(task_id) in layer.router.means for layer in self.model.layers.values())
+                )
                 phase_scale = KeepLoRATrainer.phase_scale(
                     epoch,
                     total_epochs,
@@ -391,10 +400,11 @@ class DirectionOneExperiment:
                     for images, labels in progress:
                         stats = trainer.train_batch(
                             images.to(self.device, non_blocking=True),
-                            labels.to(self.device),
+                            labels.to(self.device, non_blocking=True),
                             phase_scale=phase_scale,
                         )
-                        self.model.update_routing_statistics(task_id)  # online PFD means
+                        if is_routing_epoch:
+                            self.model.update_routing_statistics(task_id)  # online PFD means in epoch 0 only
                         for key, value in stats.items():
                             running[key] = running.get(key, 0.0) + value / len(train_loader)
                         batch_count += 1
@@ -402,6 +412,8 @@ class DirectionOneExperiment:
                             ce=f"{stats.get('loss/ce', float('nan')):.4f}",
                             model=f"{stats.get('loss/model', float('nan')):.4f}",
                         )
+                if is_routing_epoch:
+                    self.model.clear_last_inputs()  # free GPU tensor references after PFD update
                 epoch_seconds = time.perf_counter() - epoch_started
                 running["phase_scale"] = phase_scale
                 running["epoch_time_s"] = epoch_seconds

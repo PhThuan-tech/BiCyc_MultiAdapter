@@ -4,7 +4,20 @@ Tài liệu này mô tả chi tiết kiến trúc phần mềm, dòng chảy d�
 
 ---
 
-## 1. Sơ đồ Luồng Dữ liệu Tổng thể (End-to-End Dataflow)
+## 1. Sơ đồ Kiến trúc Tổng thể (Master Overall Architecture)
+
+Kiến trúc thống nhất toàn bộ vòng đời End-to-End, làm nổi bật 3 đóng góp lý thuyết mới của đề tài:
+1. **⭐ Novelty 1: Vector Channel-wise Gaussian-KL Gate ($\vec{\lambda}_{t,i} \in [\lambda_{min}, \lambda_{max}]^{768}$)**.
+2. **⭐ Novelty 2: Ràng buộc Đẳng cự Isometric ($L_{iso}$)** bảo toàn thể tích $|\det(W_A)| \approx 1$.
+3. **⭐ Novelty 3: Rào cản Cách ly Gradient (Two-Optimizer Barrier)** bằng toán tử `detach()`.
+
+<p align="center">
+  <img src="figures/overall_architecture.svg" alt="BiCyc Multi-Adapter Overall Architecture" width="100%">
+</p>
+
+---
+
+## 2. Sơ đồ Luồng Dữ liệu Tổng thể (End-to-End Dataflow)
 
 ```mermaid
 graph TD
@@ -44,7 +57,7 @@ graph TD
 
 ---
 
-## 2. Ranh giới Gradient & Cơ chế 2 Optimizer
+## 3. Ranh giới Gradient & Cơ chế 2 Optimizer
 
 Hệ thống bắt buộc tuân thủ nguyên tắc **Cách ly Gradient Tuyệt đối** để vừa bảo tồn tri thức cũ vừa không làm suy giảm khả năng học mới (*Plasticity*):
 
@@ -76,7 +89,7 @@ sequenceDiagram
 
 ---
 
-## 3. Vòng đời Huấn luyện một Task CIL (`DirectionOneExperiment`)
+## 4. Vòng đời Huấn luyện một Task CIL (`DirectionOneExperiment`)
 
 Mỗi task $t \in \{0, \dots, T-1\}$ trải qua 6 giai đoạn có kiểm soát chặt chẽ:
 
@@ -103,3 +116,14 @@ Mỗi task $t \in \{0, \dots, T-1\}$ trải qua 6 giai đoạn có kiểm soát 
    * Đánh giá ma trận độ chính xác trên toàn bộ test set của các task đã học từ $0 \dots t$.
    * Lưu checkpoint an toàn (rolling atomic save).
 
+---
+
+## 5. Bộ Sơ đồ Minh họa Vector Trực quan (SVG Architecture & Flow Diagrams)
+
+Hệ thống đi kèm bộ sơ đồ vector SVG chất lượng cao minh họa toàn diện kiến trúc và từng giai đoạn:
+
+* **[Sơ đồ Tổng thể: Kiến trúc BiCyc Multi-Adapter](file:///d:/MyProject/BiCyc_MultiAdapter/docs/figures/overall_architecture.svg)**: Bức tranh toàn cảnh kết nối luồng dữ liệu, ViT backbone, Multi-Adapter KeepLoRA, cổng KL 768 kênh, rào cản 2 Optimizer và suy diễn Bayes Mahalanobis.
+* **[Giai đoạn 1: Khởi tạo Task t & Chiếu Residual SVD](file:///d:/MyProject/BiCyc_MultiAdapter/docs/figures/flow_phase1_init.svg)**: Minh họa cơ sở trực giao $Q_{t-1}$, phép chiếu Null-space $\hat{G}_t$, và tính chất bảo toàn hàm tại Epoch 0.
+* **[Giai đoạn 2: Vòng lặp Huấn luyện Two-Optimizer](file:///d:/MyProject/BiCyc_MultiAdapter/docs/figures/flow_phase2_training.svg)**: Chi tiết ranh giới phân lập gradient giữa Bước 1 (Model Step) và Bước 2 (Alignment Step) cùng cổng Gaussian-KL.
+* **[Giai đoạn 3: Hậu Huấn luyện & Rolling Checkpoint](file:///d:/MyProject/BiCyc_MultiAdapter/docs/figures/flow_phase3_post_task.svg)**: Vận chuyển tham số Bayes qua mạng $A$, cập nhật PFD prototype và cơ chế dọn dẹp file checkpoint cố định 350MB.
+* **[Giai đoạn 4: Kiểm thử Zero-Hint & Đánh giá](file:///d:/MyProject/BiCyc_MultiAdapter/docs/figures/flow_phase4_inference.svg)**: Luồng phân loại khi không có Task-ID thông qua PFD Router và bộ phân loại khoảng cách Mahalanobis.

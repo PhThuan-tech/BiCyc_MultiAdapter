@@ -1,0 +1,223 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 540" width="100%" height="100%" style="background:#ffffff; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
+  <defs>
+    <!-- Gradients -->
+    <linearGradient id="grad-header-3" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f172a"/>
+      <stop offset="100%" stop-color="#1e293b"/>
+    </linearGradient>
+    <linearGradient id="grad-pfd-box" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fffbeb"/>
+      <stop offset="100%" stop-color="#fef3c7"/>
+    </linearGradient>
+    <linearGradient id="grad-ckpt-box" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f0fdf4"/>
+      <stop offset="100%" stop-color="#dcfce7"/>
+    </linearGradient>
+    <linearGradient id="grad-trapez-pfd" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fcd34d"/>
+      <stop offset="100%" stop-color="#f59e0b"/>
+    </linearGradient>
+
+    <!-- Cluster Gradients -->
+    <linearGradient id="grad-cl-old" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#93c5fd" stop-opacity="0.4"/>
+      <stop offset="100%" stop-color="#3b82f6" stop-opacity="0.1"/>
+    </linearGradient>
+    <linearGradient id="grad-cl-transport" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4ade80" stop-opacity="0.45"/>
+      <stop offset="100%" stop-color="#16a34a" stop-opacity="0.12"/>
+    </linearGradient>
+
+    <!-- Filter & Markers -->
+    <filter id="shadow-card-3" x="-3%" y="-3%" width="106%" height="108%" filterUnits="userSpaceOnUse">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#0f172a" flood-opacity="0.08"/>
+    </filter>
+
+    <marker id="arr-slate-3" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 1 2 L 8 5 L 1 8 z" fill="#64748b"/>
+    </marker>
+    <marker id="arr-amber-3" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 1 2 L 8 5 L 1 8 z" fill="#d97706"/>
+    </marker>
+    <marker id="arr-green-3" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 1 2 L 8 5 L 1 8 z" fill="#059669"/>
+    </marker>
+  </defs>
+
+  <!-- Outer Card Frame -->
+  <rect x="12" y="12" width="936" height="516" rx="16" fill="#ffffff" stroke="#e2e8f0" stroke-width="1.5" filter="url(#shadow-card-3)"/>
+
+  <!-- Header Banner -->
+  <path d="M 12 28 Q 12 12 28 12 L 932 12 Q 948 12 948 28 L 948 64 L 12 64 Z" fill="url(#grad-header-3)"/>
+  <text x="36" y="38" fill="#38bdf8" font-size="11" font-weight="800" letter-spacing="0.1em">PHASE 3 ARCHITECTURE • POST-TASK CONSOLIDATION</text>
+  <text x="36" y="56" fill="#ffffff" font-size="15" font-weight="700">Bayesian Parameter Transport, PFD Prototype Synthesis &amp; Zero-Replay Purge</text>
+  <rect x="735" y="24" width="195" height="28" rx="14" fill="rgba(56, 189, 248, 0.15)" stroke="#38bdf8" stroke-width="1"/>
+  <text x="832" y="42" fill="#38bdf8" font-size="11" font-weight="700" text-anchor="middle">Exemplar-Free Storage</text>
+
+  <!-- ================= TOP LEFT: POST-TASK PIPELINE ================= -->
+  <g transform="translate(32, 80)">
+    <rect width="600" height="215" rx="12" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1.2"/>
+    <text x="18" y="22" fill="#334155" font-size="11.5" font-weight="700">Pipeline: Thống Kê Tham Số ➔ Vận Chuyển Bayes Mạng A ➔ Tiêu Hủy Dữ Liệu Thô</text>
+
+    <!-- Block 1: New Class Parameter Estimation -->
+    <g transform="translate(18, 38)">
+      <rect width="175" height="160" rx="10" fill="#ffffff" stroke="#bae6fd" stroke-width="1.2"/>
+      <rect x="8" y="8" width="159" height="24" rx="5" fill="#0284c7"/>
+      <text x="87" y="24" fill="#ffffff" font-size="10.5" font-weight="800" text-anchor="middle">1. Thống Kê Lớp Mới (μ, Σ)</text>
+
+      <text x="12" y="48" fill="#0369a1" font-size="9.5" font-weight="700">Tập nhãn mới: c ∈ Cᵗ</text>
+      <rect x="10" y="56" width="155" height="42" rx="5" fill="#f0f9ff"/>
+      <text x="87" y="72" fill="#0284c7" font-size="9.5" font-style="italic" font-family="'Times New Roman', serif" text-anchor="middle">μ<tspan font-size="75%" dy="2">c</tspan><tspan dy="-2"> = 𝔼</tspan><tspan font-size="75%" dy="2"><tspan font-style="italic">x</tspan>∼<tspan font-style="italic">D</tspan><tspan font-size="75%" dy="1">c</tspan><tspan dy="-1"></tspan></tspan><tspan dy="-2">[</tspan><tspan font-style="italic">z</tspan>]</text>
+      <text x="87" y="90" fill="#0284c7" font-size="9.5" font-style="italic" font-family="'Times New Roman', serif" text-anchor="middle">Σ_c = Cov(z, z)</text>
+
+      <text x="12" y="118" fill="#475569" font-size="9">• Kích thước: d = 768</text>
+      <text x="12" y="132" fill="#475569" font-size="9">• Bộ nhớ: ~2.4 KB/lớp</text>
+      <text x="12" y="148" fill="#059669" font-size="8.5" font-weight="700">✓ Tiết kiệm 99.9% so với ảnh</text>
+    </g>
+
+    <!-- Arrow 1 -> 2 -->
+    <path d="M 197 118 L 222 118" fill="none" stroke="#0284c7" stroke-width="2" marker-end="url(#arr-slate-3)"/>
+
+    <!-- Block 2: Affine Transport of Old Distributions -->
+    <g transform="translate(228, 38)">
+      <rect width="185" height="160" rx="10" fill="#ffffff" stroke="#bbf7d0" stroke-width="1.2"/>
+      <rect x="8" y="8" width="169" height="24" rx="5" fill="#059669"/>
+      <text x="92" y="24" fill="#ffffff" font-size="10.5" font-weight="800" text-anchor="middle">2. Vận Chuyển Bayes (Map A)</text>
+
+      <text x="12" y="48" fill="#047857" font-size="9.5" font-weight="700">Toàn bộ lớp cũ: c &lt; Cᵗ</text>
+      <rect x="10" y="56" width="165" height="46" rx="5" fill="#ecfdf5"/>
+      <text x="92" y="73" fill="#047857" font-size="10" font-style="italic" font-family="'Times New Roman', serif" text-anchor="middle">μ′<tspan font-size="75%" dy="2">c</tspan><tspan dy="-2"> = μ</tspan><tspan font-size="75%" dy="2">c</tspan><tspan dy="-2"> </tspan><tspan font-style="italic">W</tspan><tspan font-size="75%" dy="2">A</tspan><tspan font-size="75%" dy="-4">ᵀ</tspan><tspan dy="2"> + </tspan><tspan font-style="italic">b</tspan><tspan font-size="75%" dy="2">A</tspan><tspan dy="-2"></tspan></text>
+      <text x="92" y="92" fill="#047857" font-size="10" font-style="italic" font-family="'Times New Roman', serif" text-anchor="middle">Σ′<tspan font-size="75%" dy="2">c</tspan><tspan dy="-2"> = </tspan><tspan font-style="italic">W</tspan><tspan font-size="75%" dy="2">A</tspan><tspan dy="-2"> Σ</tspan><tspan font-size="75%" dy="2">c</tspan><tspan dy="-2"> </tspan><tspan font-style="italic">W</tspan><tspan font-size="75%" dy="2">A</tspan><tspan font-size="75%" dy="-4">ᵀ</tspan><tspan dy="2"></tspan></text>
+
+      <text x="12" y="122" fill="#334155" font-size="9">• Chuyển tọa độ cũ ➔ mới</text>
+      <text x="12" y="138" fill="#047857" font-size="8.5" font-weight="700">✓ <tspan font-style="italic">L</tspan><tspan font-size="75%" dy="2">iso</tspan><tspan dy="-2"> chống suy biến: |Σ′| &gt; 0</tspan></text>
+      <text x="12" y="150" fill="#64748b" font-size="8">Phân loại không bị lệch lớp mới</text>
+    </g>
+
+    <!-- Arrow 2 -> 3 -->
+    <path d="M 417 118 L 438 118" fill="none" stroke="#059669" stroke-width="2" marker-end="url(#arr-green-3)"/>
+
+    <!-- Block 3: Raw Exemplar Purge (Zero Replay) -->
+    <g transform="translate(444, 38)">
+      <rect width="140" height="160" rx="10" fill="#fef2f2" stroke="#fca5a5" stroke-width="1.2"/>
+      <rect x="8" y="8" width="124" height="24" rx="5" fill="#dc2626"/>
+      <text x="70" y="24" fill="#ffffff" font-size="10" font-weight="800" text-anchor="middle">3. Tiêu Hủy Ảnh Thô</text>
+
+      <circle cx="70" cy="65" r="20" fill="#fee2e2" stroke="#ef4444" stroke-width="1.5"/>
+      <text x="70" y="72" font-size="20" text-anchor="middle">🗑️</text>
+
+      <rect x="14" y="95" width="112" height="24" rx="4" fill="#ffffff" stroke="#fca5a5"/>
+      <text x="70" y="111" fill="#b91c1c" font-size="11" font-weight="800" text-anchor="middle">Dᵗ = ∅ (Purged)</text>
+
+      <text x="70" y="132" fill="#991b1b" font-size="8.5" font-weight="700" text-anchor="middle">0 mẫu thô được giữ</text>
+      <text x="70" y="146" fill="#7f1d1d" font-size="7.5" text-anchor="middle">Bảo mật GDPR / HIPAA</text>
+    </g>
+  </g>
+
+  <!-- ================= BOTTOM LEFT: FEATURE SPACE BAYES TRANSPORT ================= -->
+  <g transform="translate(32, 310)">
+    <rect width="600" height="200" rx="12" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.2"/>
+    <text x="18" y="20" fill="#0f172a" font-size="11.5" font-weight="800">Không Gian Đặc Trưng: Vận Chuyển Đám Mây Phân Phối Gauss (μ, Σ)</text>
+
+    <!-- Cluster Subspace (Left: Prior to transport; Right: Post-transport) -->
+    <g transform="translate(18, 30)">
+      <!-- Left Subspace Frame -->
+      <rect width="265" height="120" rx="8" fill="#f8fafc" stroke="#e2e8f0"/>
+      <text x="12" y="18" fill="#0369a1" font-size="9.5" font-weight="700">Tọa độ Task cũ: (μ_c, Σ_c) ❄️</text>
+
+      <!-- Old Blue Cluster -->
+      <ellipse cx="75" cy="65" rx="45" ry="26" fill="url(#grad-cl-old)" stroke="#3b82f6" stroke-width="1.3" stroke-dasharray="3 2"/>
+      <polygon points="75,58 77,63 82,64 78,67 79,72 75,69 71,72 72,67 68,64 73,63" fill="#3b82f6"/>
+      <text x="75" y="85" fill="#1d4ed8" font-size="9" font-weight="700" text-anchor="middle">μ<tspan font-size="75%" dy="2">c1</tspan><tspan dy="-2"></tspan></text>
+      <circle cx="58" cy="60" r="1.5" fill="#3b82f6"/>
+      <circle cx="92" cy="58" r="1.5" fill="#3b82f6"/>
+
+      <!-- Old Green Cluster -->
+      <ellipse cx="185" cy="72" rx="44" ry="25" fill="url(#grad-cl-transport)" stroke="#16a34a" stroke-width="1.3" stroke-dasharray="3 2"/>
+      <polygon points="185,65 187,70 192,71 188,74 189,79 185,76 181,79 182,74 178,71 183,70" fill="#16a34a"/>
+      <text x="185" y="92" fill="#15803d" font-size="9" font-weight="700" text-anchor="middle">μ<tspan font-size="75%" dy="2">c2</tspan><tspan dy="-2"></tspan></text>
+      <circle cx="168" cy="68" r="1.5" fill="#16a34a"/>
+      <circle cx="200" cy="66" r="1.5" fill="#16a34a"/>
+
+      <text x="132" y="112" fill="#64748b" font-size="8.5" text-anchor="middle">Không gian biểu diễn cũ chưa thích ứng</text>
+    </g>
+
+    <!-- Affine Mapping Vector Arrow -->
+    <g transform="translate(288, 75)">
+      <path d="M 0 10 L 26 10" fill="none" stroke="#059669" stroke-width="2.5" marker-end="url(#arr-green-3)"/>
+      <text x="13" y="3" fill="#047857" font-size="10.5" font-weight="800" text-anchor="middle">A(z)</text>
+    </g>
+
+    <!-- Right Subspace Frame (Transported coordinate) -->
+    <g transform="translate(320, 30)">
+      <rect width="265" height="120" rx="8" fill="#f0fdf4" stroke="#bbf7d0"/>
+      <text x="12" y="18" fill="#047857" font-size="9.5" font-weight="700">Tọa độ mới sau vận chuyển: (μ', Σ') 🔥</text>
+
+      <!-- Transported Blue Cluster -->
+      <ellipse cx="75" cy="62" rx="45" ry="26" fill="url(#grad-cl-old)" stroke="#2563eb" stroke-width="1.5"/>
+      <polygon points="75,55 77,60 82,61 78,64 79,69 75,66 71,69 72,64 68,61 73,60" fill="#2563eb"/>
+      <text x="75" y="82" fill="#1e40af" font-size="9" font-weight="800" text-anchor="middle">μ′<tspan font-size="75%" dy="2">c1</tspan><tspan dy="-2"> = </tspan><tspan font-style="italic">A</tspan>(μ<tspan font-size="75%" dy="2">c1</tspan><tspan dy="-2">)</tspan></text>
+      <circle cx="58" cy="58" r="1.8" fill="#2563eb"/>
+      <circle cx="92" cy="56" r="1.8" fill="#2563eb"/>
+
+      <!-- Transported Green Cluster -->
+      <ellipse cx="185" cy="70" rx="44" ry="25" fill="url(#grad-cl-transport)" stroke="#15803d" stroke-width="1.5"/>
+      <polygon points="185,63 187,68 192,69 188,72 189,77 185,74 181,77 182,72 178,69 183,68" fill="#15803d"/>
+      <text x="185" y="90" fill="#166534" font-size="9" font-weight="800" text-anchor="middle">μ′<tspan font-size="75%" dy="2">c2</tspan><tspan dy="-2"> = </tspan><tspan font-style="italic">A</tspan>(μ<tspan font-size="75%" dy="2">c2</tspan><tspan dy="-2">)</tspan></text>
+      <circle cx="168" cy="66" r="1.8" fill="#15803d"/>
+      <circle cx="202" cy="64" r="1.8" fill="#15803d"/>
+
+      <text x="132" y="112" fill="#047857" font-size="8.5" font-weight="700" text-anchor="middle">Căn chỉnh chính xác vào không gian hiện tại</text>
+    </g>
+
+    <!-- Storage Guarantee Card at bottom -->
+    <rect x="18" y="158" width="567" height="32" rx="6" fill="#f8fafc" stroke="#e2e8f0"/>
+    <text x="28" y="178" fill="#334155" font-size="9.5">💾 <strong style="color:#0369a1;">Rolling Checkpoint Engine:</strong> Lưu <span style="font-family:'JetBrains Mono',monospace; font-weight:700;">task_t.pt</span> (~350MB) ➔ Xóa <span style="font-family:'JetBrains Mono',monospace; font-weight:700; color:#dc2626;">task_t-1.pt</span>. Cố định 1 file duy nhất, chống tràn đĩa 100%.</text>
+  </g>
+
+  <!-- ================= RIGHT PANEL: PFD PROTOTYPE SYNTHESIS ================= -->
+  <g transform="translate(650, 80)">
+    <!-- Container Box -->
+    <rect width="278" height="430" rx="14" fill="#fffbeb" stroke="#fde68a" stroke-width="1.5"/>
+    <path d="M 0 14 Q 0 0 14 0 L 264 0 Q 278 0 278 14 L 278 38 L 0 38 Z" fill="#d97706"/>
+    <text x="139" y="24" fill="#ffffff" font-size="12" font-weight="800" text-anchor="middle">PFD Prototype Synthesis Box</text>
+
+    <!-- Output Prototype Vector D_t^l -->
+    <rect x="49" y="55" width="180" height="32" rx="6" fill="#ffffff" stroke="#d97706" stroke-width="1.5"/>
+    <text x="139" y="75" fill="#b45309" font-size="12" font-weight="800" text-anchor="middle">Prototype: <tspan font-style="italic">D</tspan>ᵗ ∈ ℝ<tspan font-size="75%" dy="-4">L×d</tspan><tspan dy="4"></tspan></text>
+    <text x="139" y="100" fill="#78350f" font-size="9" text-anchor="middle">Đại diện tác vụ t cho Router suy luận</text>
+
+    <!-- Layer 4: Average Pooling Operator -->
+    <rect x="69" y="112" width="140" height="28" rx="6" fill="#fef3c7" stroke="#f59e0b" stroke-width="1.2"/>
+    <text x="139" y="129" fill="#92400e" font-size="10.5" font-weight="800" text-anchor="middle">Mean Pooling: 𝔼<tspan font-size="75%" dy="2"><tspan font-style="italic">x</tspan></tspan><tspan dy="-2">[·]</tspan></text>
+    <path d="M 139 112 L 139 88" fill="none" stroke="#d97706" stroke-width="1.5" marker-end="url(#arr-amber-3)"/>
+
+    <!-- Layer 3: Projection Trapezoid Matrix W^l -->
+    <polygon points="89,205 189,205 219,155 59,155" fill="url(#grad-trapez-pfd)" stroke="#d97706" stroke-width="1.5"/>
+    <text x="139" y="178" fill="#78350f" font-size="11.5" font-weight="800" text-anchor="middle">Projection Wˡ</text>
+    <text x="139" y="192" fill="#92400e" font-size="8.5" text-anchor="middle">Layer-wise Projector</text>
+    <path d="M 139 155 L 139 141" fill="none" stroke="#d97706" stroke-width="1.5" marker-end="url(#arr-amber-3)"/>
+
+    <!-- Layer 2: ViT Layer Hidden Activation h^l(x) -->
+    <rect x="69" y="222" width="140" height="36" rx="6" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.2"/>
+    <text x="139" y="238" fill="#334155" font-size="10" font-weight="700" text-anchor="middle">Layer Tokens hˡ(x)</text>
+    <text x="139" y="251" fill="#64748b" font-size="8.5" text-anchor="middle">Từ các block l = 3, 6, 9, 12</text>
+    <path d="M 139 222 L 139 206" fill="none" stroke="#64748b" stroke-width="1.5"/>
+
+    <!-- Layer 1: Forward Pass through ViT -->
+    <rect x="69" y="278" width="140" height="40" rx="6" fill="#f8fafc" stroke="#94a3b8" stroke-dasharray="3 2"/>
+    <text x="139" y="295" fill="#475569" font-size="10" font-weight="700" text-anchor="middle">ViT Backbone ❄️</text>
+    <text x="139" y="309" fill="#64748b" font-size="8.5" text-anchor="middle">Forward lượt cuối tập Dᵗ</text>
+    <path d="M 139 278 L 139 259" fill="none" stroke="#64748b" stroke-width="1.5" marker-end="url(#arr-slate-3)"/>
+
+    <!-- Input Batch Samples Capsule -->
+    <circle cx="139" cy="345" r="14" fill="#ffffff" stroke="#64748b" stroke-width="1.5"/>
+    <text x="139" y="350" font-size="15" text-anchor="middle">📸</text>
+    <text x="139" y="372" fill="#334155" font-size="9.5" font-weight="700" text-anchor="middle">Samples x ∈ Dᵗ</text>
+    <path d="M 139 331 L 139 319" fill="none" stroke="#64748b" stroke-width="1.5"/>
+
+    <!-- Formula Box at bottom -->
+    <rect x="14" y="388" width="250" height="32" rx="6" fill="#fef3c7" stroke="#f59e0b"/>
+    <text x="139" y="408" fill="#92400e" font-size="9" font-style="italic" font-family="'Times New Roman', serif" font-weight="700" text-anchor="middle"><tspan font-style="italic">D</tspan><tspan font-size="75%" dy="2">t</tspan><tspan font-size="75%" dy="-4">l</tspan><tspan dy="2"> = 𝔼</tspan><tspan font-size="75%" dy="2"><tspan font-style="italic">x</tspan>∼<tspan font-style="italic">D</tspan>ᵗ</tspan><tspan dy="-2">[</tspan><tspan font-style="italic">W</tspan>ˡ <tspan font-style="italic">h</tspan>ˡ(<tspan font-style="italic">x</tspan>)]  (Cheng et al., ICML 2025)</text>
+  </g>
+</svg>

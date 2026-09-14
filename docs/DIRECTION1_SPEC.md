@@ -1,11 +1,14 @@
-# Đặc tả Toán học & Nguyên lý Hoạt động Hướng 1 (`keeplora_bicyc`)
+# Đặc Tả Toán Học & Kiến Trúc BiCyc Multi-Adapter (`keeplora_bicyc`)
 
 ## 1. Tổng quan & Ràng buộc Bài toán
 
-Hướng nghiên cứu 1 giải quyết bài toán **Học tăng cường theo lớp không lưu mẫu (Exemplar-Free Class-Incremental Learning - EFCIL)** trên mô hình thị giác nền tảng **Vision Transformer (ViT)** đóng băng:
-* **Mục tiêu**: Huấn luyện mô hình nhận diện tuần tự $T$ task mới (ví dụ 10 tasks, mỗi task 10 classes trên CIFAR-100).
-* **Ràng buộc nghiêm ngặt**: **Tuyệt đối không lưu lại bất kỳ ảnh mẫu cũ nào ($0$ exemplars)** do yêu cầu bảo mật quyền riêng tư và giới hạn bộ nhớ.
-* **Bản chất khoa học**: Đây là một phương pháp **Hybrid sáng tạo** kết hợp sức mạnh bảo vệ tham số của **KeepLoRA (ICLR 2026)**, căn chỉnh biểu diễn hai chiều của **BiCyc (ICLR 2026)**, định tuyến adapter động của **Presentative Feature Distributions - PFD (ICML 2025)** cùng **đóng góp đề xuất mới** của nhóm: **Vector Channel-wise Adaptive Distribution Gate** và **Isometric Transport Regularizer**.
+Tài liệu này đặc tả chi tiết cơ sở toán học và kiến trúc của phương pháp **BiCyc Multi-Adapter**, giải quyết bài toán **Học tăng cường theo lớp không lưu mẫu (Exemplar-Free Class-Incremental Learning - EFCIL)** trên mô hình thị giác nền tảng **Vision Transformer (ViT)** đóng băng:
+* **Mục tiêu**: Huấn luyện mô hình nhận diện tuần tự $T$ task mới (chuẩn benchmark 10 tasks, mỗi task 10 classes trên CIFAR-100).
+* **Ràng buộc nghiêm ngặt**: **Tuyệt đối không lưu lại bất kỳ ảnh mẫu cũ nào ($0$ exemplars)** do yêu cầu bảo mật quyền riêng tư (GDPR) và giới hạn bộ nhớ.
+* **Bản chất khoa học**: Đây là một kiến trúc **Hybrid sáng tạo** giải quyết triệt để nghịch lý Bền vững - Mềm dẻo (Stability-Plasticity Dilemma) bằng cách kết hợp cơ sở bảo vệ tham số của **KeepLoRA (ICLR 2026)**, căn chỉnh biểu diễn hai chiều của **BiCyc (ICLR 2026)**, định tuyến adapter động của **PFD (ICML 2025)** cùng **3 đóng góp đề xuất mới** của nhóm:
+  1. **⭐ Vector Channel-wise Adaptive Gaussian-KL Gate ($\vec{\lambda}_{t,i} \in [\lambda_{min}, \lambda_{max}]^{768}$)**.
+  2. **⭐ Ràng buộc Đẳng cự Isometric ($L_{iso}$)** bảo toàn thể tích siêu elip $|\det(W_A)| \approx 1$.
+  3. **⭐ Rào cản Phân lập Gradient Hai Bộ Tối Ưu (Two-Optimizer Barrier)**.
 
 ---
 
