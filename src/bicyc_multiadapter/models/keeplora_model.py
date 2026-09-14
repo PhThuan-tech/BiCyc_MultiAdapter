@@ -186,24 +186,29 @@ class KeepLoRACILModel(nn.Module):
             layer.base_weight.requires_grad_(enabled)
 
     def _register_hooks(self) -> None:
-        """Capture layer inputs: last batch feeds PFD means; capped CPU cache feeds the M_t SVD."""
+        """Capture layer inputs: compact mean feeds PFD; capped CPU cache feeds the M_t SVD."""
         for name, layer in self.layers.items():
+            self.memory[name].collect_routing = True
 
             def hook(_module, inputs, _output, key=name):
                 memory = self.memory[key]
                 remaining = self.activation_cache_rows - memory.cached_rows
                 if remaining > 0:
                     detached = inputs[0].detach()
-                    # Transformer linears see [batch, tokens, d_in]; PFD statistics and the
-                    # end-of-task SVD both operate on flat [rows, d_in] activation rows.
+                    # Transformer linears see [batch, tokens, d_in]; flat CPU cache feeds the SVD
                     flat = detached.reshape(-1, detached.shape[-1])
                     kept = flat[:remaining]
                     memory.activation_cache.append(kept.to("cpu"))
                     memory.cached_rows += kept.shape[0]
-                    memory.last_input = flat
-                elif memory.last_input is not None:
+
+                # Memory optimization: store ONLY the compact 1D mean vector [1, d_in] + count (3 KB),
+                # NOT the massive [batch * tokens, d_in] tensor (38-155 MB per layer = 3.25 GB GPU leak).
+                if getattr(memory, "collect_routing", True):
                     detached = inputs[0].detach()
-                    memory.last_input = detached.reshape(-1, detached.shape[-1])
+                    batch_count = detached.shape[0] * (detached.shape[1] if detached.ndim > 2 else 1)
+                    mean_dims = tuple(range(detached.ndim - 1))
+                    mean_vec = detached.float().mean(dim=mean_dims).reshape(1, -1)
+                    memory.last_input = (mean_vec, batch_count)
 
             self.memory[name].hook_handle = layer.register_forward_hook(hook)
 
@@ -211,6 +216,7 @@ class KeepLoRACILModel(nn.Module):
         """Release temporary last_input references after PFD statistics are updated."""
         for memory in self.memory.values():
             memory.last_input = None
+            memory.collect_routing = False
 
     @torch.no_grad()
     def update_routing_statistics(self, task_id: int) -> None:

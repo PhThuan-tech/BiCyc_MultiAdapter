@@ -359,6 +359,8 @@ class DirectionOneExperiment:
                 max_grad_samples = int(max_grad_samples)
             self.model.begin_task(task_id, train_loader, self.device, max_gradient_samples=max_grad_samples)
             self.log.info("[task %s] begin_task xong (gradient-SVD init, subsample=%s)", task_id, max_grad_samples)
+            if torch.cuda.is_available() and self.device != "cpu":
+                torch.cuda.empty_cache()
 
         model_optimizer = torch.optim.AdamW(
             self.model.trainable_parameters(),
