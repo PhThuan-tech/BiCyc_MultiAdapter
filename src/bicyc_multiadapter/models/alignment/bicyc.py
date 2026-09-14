@@ -21,6 +21,17 @@ class _Projector(nn.Module):
     def forward(self, features: Tensor) -> Tensor:
         return self.net(features)
 
+    def forward_detached_weights(self, features: Tensor) -> Tensor:
+        """Forward with detached weights so gradients flow to features but not to projector weights."""
+        if isinstance(self.net, nn.Linear):
+            bias = None if self.net.bias is None else self.net.bias.detach()
+            return F.linear(features, self.net.weight.detach(), bias)
+        from torch.func import functional_call
+
+        params = {k: v.detach() for k, v in self.net.named_parameters()}
+        buffers = {k: v.detach() for k, v in self.net.named_buffers()}
+        return functional_call(self.net, (params, buffers), (features,))
+
 
 class BidirectionalCycle(nn.Module):
     """A: old -> new and D: new -> old, learned during the current task."""
@@ -37,6 +48,10 @@ class BidirectionalCycle(nn.Module):
             "cycle_new": self.old_to_new(self.new_to_old(new_features)),
             "cycle_old": self.new_to_old(self.old_to_new(old_features)),
         }
+
+    def predict_old_detached_weights(self, new_features: Tensor) -> Tensor:
+        """Map new_features -> old space with detached projector weights (for model distillation step)."""
+        return self.new_to_old.forward_detached_weights(new_features)
 
 
 @dataclass

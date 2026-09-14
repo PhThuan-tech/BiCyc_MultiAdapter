@@ -179,9 +179,16 @@ class RoutedKeepLoRALinear(nn.Module):
             if key not in self.adapters:
                 continue  # defensive: a mean without its adapter (should not happen)
             weight_column = weights[:, index]
-            if base_features.dim() == 3:
-                weight_column = weight_column.view(feats.shape[0], feats.shape[1], 1)
+            if not (weight_column > 0).any():
+                continue
+            delta = self.adapters[key].delta(inputs)
+            if (weight_column == 1.0).all():
+                output = output + delta.to(output.dtype)
             else:
-                weight_column = weight_column.unsqueeze(-1)
-            output = output + weight_column * self.adapters[key].delta(inputs)
+                if base_features.dim() == 3:
+                    w = weight_column.view(feats.shape[0], feats.shape[1], 1).to(output.dtype)
+                else:
+                    w = weight_column.unsqueeze(-1).to(output.dtype)
+                output = output + w * delta
         return output + (0 if self.bias is None else self.bias)
+

@@ -61,3 +61,26 @@ def test_cosine_similarity_routing() -> None:
     report1 = layer.route_report(probe1)
     assert report0["0"] > report0["1"]
     assert report1["1"] > report1["0"]
+
+
+def test_top1_routing_sparse_skips_inactive_adapters() -> None:
+    torch.manual_seed(0)
+    layer = RoutedKeepLoRALinear(torch.randn(8, 8), None, alpha=4)
+    factor0 = layer.add_task(0, initialize_lora_from_gradient(torch.randn(8, 8), None, rank=2))
+    factor1 = layer.add_task(1, initialize_lora_from_gradient(torch.randn(8, 8), None, rank=2))
+    # Distinct means so that probe0 routes 100% to task 0 with top_k=1
+    probe0 = torch.randn(16, 8) - 10.0
+    probe1 = torch.randn(16, 8) + 10.0
+    layer.update_distribution(0, probe0)
+    layer.update_distribution(1, probe1)
+
+    # Forward with top_k=1
+    out = layer(probe0, top_k=1)
+    loss = out.sum()
+    loss.backward()
+
+    # Factor 0 should receive gradients; Factor 1 was skipped and must have no gradients
+    assert factor0.B.grad is not None
+    assert factor1.B.grad is None or (factor1.B.grad == 0).all()
+
+
