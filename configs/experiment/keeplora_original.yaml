@@ -15,12 +15,13 @@ defaults:
 image_size: 224
 targets: [qkv, proj, fc1, fc2]
 activation_cache_rows: 4096
+gradient_init_subsample: 1280
 train:
   epochs_per_task: 20
   batch_size: 128
   lr: 0.001
   weight_decay: 0.0001
-  amp: false              # fp16 mixed precision; bật true trên GPU TensorCore (T4/RTX/A100)
+  amp: true               # fp16 mixed precision: bật true trên GPU TensorCore (T4/RTX/A100)
   amp_dtype: float16
 alignment:
   enabled: false

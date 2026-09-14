@@ -138,10 +138,10 @@ class KeepLoRACILModel(nn.Module):
         if device is not None:
             self.head = self.head.to(device)
 
-    def begin_task(self, task_id: int, train_loader, device) -> None:
+    def begin_task(self, task_id: int, train_loader, device, max_gradient_samples: int | None = None) -> None:
         """Residual-gradient SVD init from a single CE-only pass (KeepLoRA Eq. 6)."""
         self._set_base_grad_enabled(True)
-        sample_count = self._accumulate_classification_gradient(train_loader, device)
+        sample_count = self._accumulate_classification_gradient(train_loader, device, max_samples=max_gradient_samples)
         with torch.no_grad():
             for name, layer in self.layers.items():
                 memory = self.memory[name]
@@ -156,18 +156,27 @@ class KeepLoRACILModel(nn.Module):
         self._set_base_grad_enabled(False)
         self._register_hooks()
 
-    def _accumulate_classification_gradient(self, train_loader, device) -> int:
-        """Backward CE over the whole task stream; only base weights/head collect grads.
+    def _accumulate_classification_gradient(
+        self, train_loader, device, max_samples: int | None = None
+    ) -> int:
+        """Backward CE over the task stream; only base weights/head collect grads.
 
         The gradient w.r.t. ``base_weight`` flows through the base path only (the
         LoRA delta does not depend on W), so this is exactly G_t of the paper.
+        Uses AMP autocast on CUDA to leverage Tensor Cores and optional max_samples limit.
         """
         seen = 0
+        device_type = device.type if isinstance(device, torch.device) else str(device).split(":")[0]
+        use_amp = device_type == "cuda"
         for images, labels in train_loader:
-            logits, _ = self.forward(images.to(device, non_blocking=True))
-            F.cross_entropy(logits, labels.to(device)).backward()
+            if max_samples is not None and seen >= max_samples:
+                break
+            with torch.amp.autocast(device_type=device_type, dtype=torch.float16, enabled=use_amp):
+                logits, _ = self.forward(images.to(device, non_blocking=True))
+                loss = F.cross_entropy(logits, labels.to(device, non_blocking=True))
+            loss.backward()
             seen += labels.shape[0]
-        return seen
+        return max(seen, 1)
 
     def _set_base_grad_enabled(self, enabled: bool) -> None:
         """Temporarily make base weights leaves that collect the init gradient."""
@@ -181,19 +190,27 @@ class KeepLoRACILModel(nn.Module):
         for name, layer in self.layers.items():
 
             def hook(_module, inputs, _output, key=name):
-                detached = inputs[0].detach()
-                # Transformer linears see [batch, tokens, d_in]; PFD statistics and the
-                # end-of-task SVD both operate on flat [rows, d_in] activation rows.
-                flat = detached.reshape(-1, detached.shape[-1])
                 memory = self.memory[key]
-                memory.last_input = flat
                 remaining = self.activation_cache_rows - memory.cached_rows
                 if remaining > 0:
+                    detached = inputs[0].detach()
+                    # Transformer linears see [batch, tokens, d_in]; PFD statistics and the
+                    # end-of-task SVD both operate on flat [rows, d_in] activation rows.
+                    flat = detached.reshape(-1, detached.shape[-1])
                     kept = flat[:remaining]
                     memory.activation_cache.append(kept.to("cpu"))
                     memory.cached_rows += kept.shape[0]
+                    memory.last_input = flat
+                elif memory.last_input is not None:
+                    detached = inputs[0].detach()
+                    memory.last_input = detached.reshape(-1, detached.shape[-1])
 
             self.memory[name].hook_handle = layer.register_forward_hook(hook)
+
+    def clear_last_inputs(self) -> None:
+        """Release temporary last_input references after PFD statistics are updated."""
+        for memory in self.memory.values():
+            memory.last_input = None
 
     @torch.no_grad()
     def update_routing_statistics(self, task_id: int) -> None:

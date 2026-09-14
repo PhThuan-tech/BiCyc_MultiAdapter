@@ -14,5 +14,8 @@ checkpoints/*
 *.pt
 *.pth
 *.ckpt
+*.egg-info/
+build/
+dist/
 .env
 %TEMP%/

@@ -13,60 +13,68 @@ Dự án phát triển kiến trúc lai **`keeplora_bicyc`**: Kết hợp **Keep
 * **Ràng buộc khắt khe**: **Tuyệt đối không lưu trữ bất kỳ ảnh mẫu cũ nào ($0$ exemplars)** nhằm tuân thủ quyền riêng tư (GDPR) và tiết kiệm bộ nhớ phần cứng.
 * **Mục tiêu**: Giải quyết triệt để nghịch lý giữa bảo tồn tri thức cũ (*Stability*) và tiếp thu khái niệm mới (*Plasticity*), loại bỏ hiện tượng *quên thảm họa (catastrophic forgetting)*.
 
-### 1.2. Các Đóng Góp Cốt Lõi
-1. **KeepLoRA Residual SVD Initialization**: Chiếu gradient vào không gian hạch (Null-space) trực giao với tri thức cũ $(I - Q_{t-1}Q_{t-1}^\top)G_t$, khởi tạo adapter bảo toàn hàm số $\Delta W_t^{(0)} = \mathbf{0}$.
-2. **Ngân Hàng Đa Adapter & Định Tuyến PFD (Cosine Router)**: Duy trì các adapter riêng biệt theo từng tác vụ (không gộp đè làm loãng tri thức). Khi suy diễn, tự động kích hoạt adapter tối ưu nhất theo cơ chế Hard Top-1.
-3. **Căn Chỉnh Hai Chiều BiCyc & Ràng Buộc Đẳng Cự ($L_{iso}$ - Đề xuất mới)**: Mạng affine đối ngẫu $A$ và $D$ chuyển đổi đặc trưng giữa hai không gian cũ-mới, kết hợp hàm phạt đẳng cự giữ $|\det(W_A)| \approx 1$ chống co rút/bùng nổ elip phân phối.
-4. **Cổng Phân Phối Thích Ứng Theo Kênh ($\vec{\lambda}_{t,i}$ - Đề xuất mới)**: Tính toán phân kỳ KL đối xứng trên 768 kênh của ViT. Kênh bảo lưu ngữ nghĩa chung được siết chặt chưng cất ($\lambda \to 1.0$), kênh học mới được nới lỏng ($\lambda \to 0.3$).
-5. **Rào Cản Hai Bộ Tối Ưu (Two-Optimizer Barrier)**: Tách biệt hai luồng tối ưu: *Model Step* cập nhật Adapter/Head; *Alignment Step* cập nhật mạng căn chỉnh $A, D$ trên vector đã ngắt gradient (`detach()`).
-6. **Vận Chuyển Phân Phối Giải Tích & Phân Loại Bayes**: Lưu trữ thống kê lớp dưới dạng phân phối Gauss $(\mu_c, \Sigma_c)$ dung lượng siêu nhẹ (~6.2KB/lớp). Vận chuyển tức thì qua công thức giải tích khi sang task mới, phân loại bằng khoảng cách Mahalanobis khử thiên vị recency bias.
+### 1.2. Các Đóng Góp Cốt Lõi & Tính Mới Khoa Học
+1. **⭐ [Đóng góp Mới 1] Vector Channel-wise Gaussian-KL Adaptive Gate ($\vec{\lambda}_{t,i}$)**: Tính toán phân kỳ KL đối xứng trên từng kênh trong số 768 kênh của ViT. Kênh lưu giữ ngữ nghĩa chung được siết chặt chưng cất ($\lambda \to 1.0$), kênh tiếp nhận tri thức mới được nới lỏng ($\lambda \to 0.35$), giải quyết triệt để vấn đề underfitting kênh của BiCyc gốc.
+2. **⭐ [Đóng góp Mới 2] Ràng Buộc Đẳng Cự Isometric ($L_{iso}$)**: Ngăn chặn ánh xạ Affine $W_A$ làm co sụp định thức $|\det(W_A)| \to 0$ và biến dạng góc vector đặc trưng, bảo toàn thể tích siêu elip phân phối qua chuỗi dài 10 tasks.
+3. **⭐ [Đóng góp Mới 3] Rào Cản Cách Ly Hai Bộ Tối Ưu (Two-Optimizer Gradient Barrier)**: Sử dụng toán tử `detach()` phân lập tuyệt đối: *Model Step* (cập nhật LoRA Up-matrix $B_t$ và Head) và *Alignment Step* (cập nhật mạng căn chỉnh hai chiều $A, D$). Triệt tiêu $100\%$ xung đột gradient giữa thích ứng lớp mới và giữ tri thức cũ.
+4. **Ngân Hàng Đa Adapter Độc Lập & Định Tuyến PFD (Cosine Router)**: Kế thừa cơ chế khởi tạo Null-Space SVD từ KeepLoRA, duy trì các adapter riêng biệt theo từng task (không gộp đè làm loãng tri thức). Khi suy diễn, tự động kích hoạt adapter tối ưu nhất theo cơ chế Hard Top-1.
+5. **Vận Chuyển Phân Phối Giải Tích & Phân Loại Bayes Không Cần Task-ID**: Lưu trữ thống kê lớp dưới dạng phân phối Gauss $(\mu_c, \Sigma_c)$ siêu nhẹ (~6.2KB/lớp). Vận chuyển tức thì qua công thức giải tích $O(1)$ khi sang task mới; phân loại bằng khoảng cách Mahalanobis khử hoàn toàn thiên vị lớp mới (Recency Bias).
 
 ---
 
-## 2. Minh Họa Các Luồng Hoạt Động Cốt Lõi
+## 2. Kiến Trúc Hệ Thống & Các Giai Đoạn Vận Hành
 
-Hệ thống vận hành khép kín qua **4 giai đoạn**:
-
-### Giai Đoạn 1: Chiếu Gradient Null-Space & Khởi Tạo KeepLoRA
-Gradient tác vụ mới được chiếu qua phần bù trực chuẩn để không làm thay đổi các hướng kích hoạt quan trọng của tác vụ cũ. Khởi tạo $A_t, B_t^{(0)}$ sao cho độ lệch trọng số ban đầu triệt tiêu hoàn toàn.
+### 2.1. Sơ Đồ Kiến Trúc Tổng Thể (Master End-to-End Architecture)
+Toàn bộ chu trình từ luồng dữ liệu, trích xuất đặc trưng, cổng KL thích ứng, rào cản 2 optimizer đến suy luận Bayes được tích hợp trong một sơ đồ thống nhất:
 
 <p align="center">
-  <img src="docs/figures/flow_phase1_init.svg" alt="Giai Đoạn 1: Khởi Tạo KeepLoRA & Chiếu Null-Space" width="90%">
+  <img src="docs/figures/overall_architecture.svg" alt="BiCyc Multi-Adapter Overall Architecture" width="100%">
 </p>
 
 ---
 
-### Giai Đoạn 2: Huấn Luyện 2-Optimizer & Cổng KL 768 Kênh Thích Ứng
-Tách biệt hai luồng tối ưu độc lập bằng rào cản `detach()`. Cổng $\vec{\lambda}_{t,i}$ phân hóa linh hoạt 768 kênh ViT dựa trên độ dịch chuyển phân phối Gaussian-KL.
+### 2.2. Chi Tiết 4 Giai Đoạn Vận Hành Khép Kín:
+
+#### Giai Đoạn 1: Chiếu Gradient Null-Space & Khởi Tạo KeepLoRA
+Gradient tác vụ mới được chiếu qua phần bù trực chuẩn để không làm thay đổi các hướng kích hoạt quan trọng của tác vụ cũ. Khởi tạo $A_t, B_t^{(0)}$ sao cho độ lệch trọng số ban đầu triệt tiêu hoàn toàn ($\Delta W_t^{(0)} = \mathbf{0}$).
 
 <p align="center">
-  <img src="docs/figures/flow_phase2_training.svg" alt="Giai Đoạn 2: Huấn Luyện Two-Optimizer & Cổng Kênh Thích Ứng" width="90%">
+  <img src="docs/figures/flow_phase1_init.svg" alt="Giai Đoạn 1: Khởi Tạo KeepLoRA & Chiếu Null-Space" width="88%">
 </p>
 
 ---
 
-### Giai Đoạn 3: Tiêu Hủy Dữ Liệu Thô (GDPR) & Vận Chuyển Gauss Giải Tích
+#### Giai Đoạn 2: Huấn Luyện 2-Optimizer & Cổng KL 768 Kênh Thích Ứng
+Tách biệt hai luồng tối ưu độc lập bằng rào cản `detach()`. Cổng $\vec{\lambda}_{t,i}$ phân hóa linh hoạt 768 kênh ViT dựa trên độ dịch chuyển phân phối Gaussian-KL, kết hợp hàm phạt đẳng cự $L_{iso}$.
+
+<p align="center">
+  <img src="docs/figures/flow_phase2_training.svg" alt="Giai Đoạn 2: Huấn Luyện Two-Optimizer & Cổng Kênh Thích Ứng" width="88%">
+</p>
+
+---
+
+#### Giai Đoạn 3: Tiêu Hủy Dữ Liệu Thô (GDPR) & Vận Chuyển Gauss Giải Tích
 Ngay khi hoàn thành task, toàn bộ ảnh thô bị xóa bỏ. Phân phối Gauss $(\mu_c, \Sigma_c)$ của các lớp cũ được vận chuyển giải tích sang tọa độ mới qua ánh xạ Affine $A$ mà không cần sinh ảnh mẫu giả.
 
 <p align="center">
-  <img src="docs/figures/flow_phase3_post_task.svg" alt="Giai Đoạn 3: Tiêu Hủy Ảnh & Vận Chuyển Giải Tích" width="90%">
+  <img src="docs/figures/flow_phase3_post_task.svg" alt="Giai Đoạn 3: Tiêu Hủy Ảnh & Vận Chuyển Giải Tích" width="88%">
 </p>
 
 ---
 
-### Giai Đoạn 4: Định Tuyến Zero-Hint Cosine Router & Phân Loại Mahalanobis
+#### Giai Đoạn 4: Định Tuyến Zero-Hint Cosine Router & Phân Loại Mahalanobis
 Khi thử nghiệm mẫu ảnh bất kỳ (không cung cấp Task-ID), Cosine Router tìm adapter có độ tương đồng phân phối cao nhất. Vector đặc trưng được chấm điểm log-likelihood trên toàn bộ các lớp qua khoảng cách Mahalanobis elip.
 
 <p align="center">
-  <img src="docs/figures/flow_phase4_inference.svg" alt="Giai Đoạn 4: Định Tuyến Suy Diễn & Phân Loại Bayes" width="90%">
+  <img src="docs/figures/flow_phase4_inference.svg" alt="Giai Đoạn 4: Định Tuyến Suy Diễn & Phân Loại Bayes" width="88%">
 </p>
 
-> 🔗 **Tài Liệu Chi Tiết & Demo Tương Tác Trực Tiếp:**
+> 🔗 **Hệ Thống Tài Liệu Chuyên Sâu Của Đề Tài:**
+> * [**Sơ Đồ Vector Kiến Trúc Tổng Thể (overall_architecture.svg)**](docs/figures/overall_architecture.svg) *(Trọng tâm kiến trúc)*
 > * [**Báo Cáo Chi Tiết Về Luồng Hoạt Động & Công Thức Toán (WORKFLOW_EXPLAINED.md)**](docs/WORKFLOW_EXPLAINED.md) *(Khuyên đọc)*
-> * [**Trang Trình Chiếu Báo Cáo Slide Động (presentation_slides.html)**](docs/presentation_slides.html)
-> * [**Phần Mềm Mô Phỏng Trực Quan Pipeline Tương Tác (interactive_pipeline.html)**](docs/interactive_pipeline.html)
-> * [Báo Cáo Nghiên Cứu Khoa Học Chuẩn Luận Văn (SCIENTIFIC_REPORT.md)](docs/SCIENTIFIC_REPORT.md)
-> * [Đặc Tả Toán Học Chi Tiết Hướng 1 (DIRECTION1_SPEC.md)](docs/DIRECTION1_SPEC.md)
+> * [**Kiến Trúc Hệ Thống & Ranh Giới Gradient (ARCHITECTURE.md)**](docs/ARCHITECTURE.md)
+> * [**Đặc Tả Toán Học Chi Tiết & Ràng Buộc Đẳng Cự (DIRECTION1_SPEC.md)**](docs/DIRECTION1_SPEC.md)
+> * [**Trang Trình Chiếu Báo Cáo Slide Động 12 Trang (presentation_slides.html)**](docs/presentation_slides.html)
 
 ---
 
@@ -120,32 +128,32 @@ python -m bicyc_multiadapter.train experiment=keeplora_bicyc_8gb experiment.trai
 
 #### B. Chạy Đầy Đủ Phương Pháp Đề Xuất (Proposed: Multi-Adapter + BiCyc + Channel Gate + $L_{iso}$):
 ```powershell
+# Khuyến nghị trên Kaggle / GPU 16 GB (T4/P100) - Tối ưu ~1.8h – 2.0h:
+python -m bicyc_multiadapter.train experiment=keeplora_bicyc_fast
+
 # Dành cho GPU 8 GB VRAM (RTX 3060/4060/Laptop):
 python -m bicyc_multiadapter.train experiment=keeplora_bicyc_8gb
 
-# Dành cho GPU lớn (>= 12 GB VRAM - Batch size 128):
+# Dành cho GPU lớn (>= 24 GB VRAM - Batch size 128, SVD full-pass):
 python -m bicyc_multiadapter.train experiment=keeplora_bicyc
 ```
 
 #### C. Chạy Mô Hình Đối Chứng (Baseline KeepLoRA Gốc - Gộp adapter, không căn chỉnh BiCyc):
 ```powershell
-# Dành cho GPU 8 GB:
-python -m bicyc_multiadapter.train experiment=keeplora_original_8gb
-
-# Dành cho GPU >= 12 GB:
+# Chạy baseline KeepLoRA phục vụ bảng so sánh (Ablation Study):
 python -m bicyc_multiadapter.train experiment=keeplora_original
 ```
 
 #### D. Chạy Các Thử Nghiệm Triệt Tiêu (Ablation Studies):
 ```powershell
 # 1. Dùng cổng vô hướng (Scalar Adaptive Gate):
-python -m bicyc_multiadapter.train experiment=keeplora_bicyc_8gb experiment.alignment.channelwise_gate=false
+python -m bicyc_multiadapter.train experiment=keeplora_bicyc_fast experiment.alignment.channelwise_gate=false
 
 # 2. Không dùng cổng thích ứng (Cố định lambda = 1.0):
-python -m bicyc_multiadapter.train experiment=keeplora_bicyc_8gb experiment.alignment.adaptive_gate=false
+python -m bicyc_multiadapter.train experiment=keeplora_bicyc_fast experiment.alignment.adaptive_gate=false
 
 # 3. Không dùng ràng buộc đẳng cự (L_iso = 0):
-python -m bicyc_multiadapter.train experiment=keeplora_bicyc_8gb experiment.alignment.lambda_iso=0.0
+python -m bicyc_multiadapter.train experiment=keeplora_bicyc_fast experiment.alignment.lambda_iso=0.0
 ```
 
 ---
@@ -167,7 +175,7 @@ Nếu quá trình huấn luyện bị gián đoạn (mất điện, ngắt kết
   ```
 * **Đánh giá lại mô hình từ checkpoint đã lưu:**
   ```powershell
-  python -m bicyc_multiadapter.evaluate experiment=keeplora_bicyc_8gb
+  python -m bicyc_multiadapter.evaluate experiment=keeplora_bicyc_fast
   ```
 * **Vị trí lưu trữ dữ liệu thực nghiệm:**
   Ma trận độ chính xác $10 \times 10$, mức độ quên trung bình (*average forgetting*), độ trôi biểu diễn (*representation drift*) được ghi tự động tại:
@@ -175,11 +183,7 @@ Nếu quá trình huấn luyện bị gián đoạn (mất điện, ngắt kết
 
 ---
 
-### 4.5. Triển Khai Docker & Cloud (Kaggle / Colab)
-* **Docker:**
-  ```bash
-  docker compose build
-  docker compose run --rm research bash
-  python -m bicyc_multiadapter.train experiment=keeplora_bicyc
-  ```
-* **Kaggle / Colab:** Sử dụng notebook [`notebooks/kaggle_train.ipynb`](notebooks/kaggle_train.ipynb), bật chế độ GPU (T4/P100). Notebook đã cấu hình sẵn AMP `fp16`, TF32 và tự động nén `results.zip` sau khi hoàn thành.
+### 4.5. Triển Khai trên Cloud (Kaggle / Colab)
+Sử dụng trực tiếp các notebook đã cấu hình sẵn trong thư mục `notebooks/`:
+* **Kaggle Notebook**: [`notebooks/kaggle_train.ipynb`](notebooks/kaggle_train.ipynb) — Tối ưu hóa cho GPU T4/P100 16GB, tự động kích hoạt `keeplora_bicyc_fast`, nạp dataset CIFAR-100 không cần Internet và đóng gói `results.zip`.
+* **Google Colab Notebook**: [`notebooks/colab_train.ipynb`](notebooks/colab_train.ipynb) — Tích hợp kết nối Google Drive tự động sao lưu checkpoint để chống mất kết nối giữa chừng.
